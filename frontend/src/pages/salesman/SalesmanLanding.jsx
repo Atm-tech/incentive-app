@@ -28,7 +28,7 @@ export default function SalesmanLanding() {
         <h1 className="text-lg font-bold text-red-700">Dashboard</h1>
         <Card
           className="w-10 h-10 bg-gray-200 flex items-center justify-center rounded-full shadow"
-          onClick={() => navigate('/salesman/profile')}
+          onClick={() => navigate('/api/salesman/profile')}
         >
           <span className="text-xs text-gray-700">Me</span>
         </Card>

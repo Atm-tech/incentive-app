@@ -9,7 +9,7 @@ export default function ProfilePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/salesman/me')
+    api.get('/api/salesman/me')
       .then(res => setProfile(res.data))
       .catch(console.error);
   }, []);
