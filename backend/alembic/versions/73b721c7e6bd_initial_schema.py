@@ -1,8 +1,8 @@
 """initial schema
 
-Revision ID: 0b344c33264e
+Revision ID: 73b721c7e6bd
 Revises: 
-Create Date: 2025-06-08 09:09:50.188841
+Create Date: 2025-06-12 17:09:42.337105
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0b344c33264e'
+revision: str = '73b721c7e6bd'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -46,6 +46,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('barcode')
     )
     op.create_index(op.f('ix_products_barcode'), 'products', ['barcode'], unique=False)
+    op.create_index(op.f('ix_products_verticle'), 'products', ['verticle'], unique=False)
     op.create_table('salesmen',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
@@ -54,6 +55,7 @@ def upgrade() -> None:
     sa.Column('verticle', sa.String(), nullable=True),
     sa.Column('password', sa.String(), nullable=True),
     sa.Column('is_approved', sa.Boolean(), nullable=True),
+    sa.Column('wallet_balance', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
@@ -62,7 +64,7 @@ def upgrade() -> None:
     op.create_table('system_state',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('setup_complete', sa.Boolean(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
@@ -76,6 +78,14 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_trait_configs_id'), 'trait_configs', ['id'], unique=False)
     op.create_index(op.f('ix_trait_configs_trait'), 'trait_configs', ['trait'], unique=True)
+    op.create_table('verticles',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(), nullable=True),
+    sa.Column('description', sa.String(), nullable=True),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_verticles_id'), 'verticles', ['id'], unique=False)
+    op.create_index(op.f('ix_verticles_name'), 'verticles', ['name'], unique=True)
     op.create_table('actual_sales',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('date', sa.DateTime(), nullable=False),
@@ -89,6 +99,21 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_actual_sales_id'), 'actual_sales', ['id'], unique=False)
+    op.create_table('claims',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('salesman_id', sa.Integer(), nullable=True),
+    sa.Column('total_amount', sa.Float(), nullable=False),
+    sa.Column('is_approved', sa.Boolean(), nullable=True),
+    sa.Column('remarks', sa.String(), nullable=True),
+    sa.Column('status', sa.String(), nullable=True),
+    sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=True),
+    sa.Column('amount', sa.Float(), nullable=True),
+    sa.Column('tx_hash', sa.String(), nullable=True),
+    sa.ForeignKeyConstraint(['salesman_id'], ['salesmen.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_claims_id'), 'claims', ['id'], unique=False)
     op.create_table('incentives',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('salesman_id', sa.Integer(), nullable=True),
@@ -107,6 +132,7 @@ def upgrade() -> None:
     sa.Column('customer_number', sa.String(), nullable=False),
     sa.Column('salesman_id', sa.Integer(), nullable=False),
     sa.Column('timestamp', sa.DateTime(), nullable=True),
+    sa.Column('amount', sa.Float(), nullable=False),
     sa.ForeignKeyConstraint(['salesman_id'], ['salesmen.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -135,8 +161,13 @@ def downgrade() -> None:
     op.drop_table('sales')
     op.drop_index(op.f('ix_incentives_id'), table_name='incentives')
     op.drop_table('incentives')
+    op.drop_index(op.f('ix_claims_id'), table_name='claims')
+    op.drop_table('claims')
     op.drop_index(op.f('ix_actual_sales_id'), table_name='actual_sales')
     op.drop_table('actual_sales')
+    op.drop_index(op.f('ix_verticles_name'), table_name='verticles')
+    op.drop_index(op.f('ix_verticles_id'), table_name='verticles')
+    op.drop_table('verticles')
     op.drop_index(op.f('ix_trait_configs_trait'), table_name='trait_configs')
     op.drop_index(op.f('ix_trait_configs_id'), table_name='trait_configs')
     op.drop_table('trait_configs')
@@ -145,6 +176,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_salesmen_mobile'), table_name='salesmen')
     op.drop_index(op.f('ix_salesmen_id'), table_name='salesmen')
     op.drop_table('salesmen')
+    op.drop_index(op.f('ix_products_verticle'), table_name='products')
     op.drop_index(op.f('ix_products_barcode'), table_name='products')
     op.drop_table('products')
     op.drop_index(op.f('ix_outlets_id'), table_name='outlets')
