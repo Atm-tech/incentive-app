@@ -4,7 +4,8 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from db.database import get_db
 from crud.salesman_crud import get_salesman_by_mobile
-from core.config import settings
+from config import settings
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
