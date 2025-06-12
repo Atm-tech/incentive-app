@@ -28,3 +28,9 @@ def remove_salesman(
     if not success:
         raise HTTPException(status_code=404, detail="Salesman not found or not approved")
     return {"message": "Salesman removed"}
+
+@router.get("/me", response_model=SalesmanOut)
+def get_me(
+    salesman=Depends(get_current_user_role("salesman"))
+):
+    return salesman

@@ -32,7 +32,7 @@ export default function TraitsConfig() {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        `${API_BASE_URL}/api/traits`,
+        `${API_BASE_URL}/api/admin/traits`,
         {
           trait: name,
           percentage: parseFloat(percentage),

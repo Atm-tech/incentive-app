@@ -1,29 +1,26 @@
 from sqlalchemy.orm import Session
 from models.claim import Claim
 from models.incentive import Incentive
+from models.salesman import Salesman
 from typing import Optional, List
 from fastapi import HTTPException
 from datetime import datetime
 
-def submit_claim(db: Session, salesman_id: int, remarks: Optional[str] = None) -> Optional[Claim]:
+
+def submit_claim(db: Session, salesman_id: int, amount: float, remarks: Optional[str] = None) -> Optional[Claim]:
     """
-    Create a claim for all unclaimed incentives for a given salesman.
-    Marks them as claimed and stores a claim record.
+    Create a claim (withdrawal request) for a specified amount.
+    Deducts from wallet after approval — not here.
     """
-    incentives = db.query(Incentive).filter_by(salesman_id=salesman_id, claimed=False).all()
-    if not incentives:
+    salesman = db.query(Salesman).filter_by(id=salesman_id).first()
+
+    if not salesman or salesman.wallet_balance < amount:
         return None
-
-    total_amount = sum(i.amount for i in incentives)
-
-    # Mark all incentives as claimed
-    for incentive in incentives:
-        incentive.claimed = True
 
     claim = Claim(
         salesman_id=salesman_id,
-        total_amount=total_amount,
-        is_approved=False,
+        amount=amount,
+        status="pending",
         remarks=remarks
     )
 
@@ -40,20 +37,38 @@ def submit_claim(db: Session, salesman_id: int, remarks: Optional[str] = None) -
 
 def get_all_claims(db: Session) -> List[Claim]:
     """
-    Return all submitted claims sorted by newest first.
+    Admin: Return all submitted claims sorted by newest first.
     """
     return db.query(Claim).order_by(Claim.timestamp.desc()).all()
 
 
-def approve_claim_by_id(db: Session, claim_id: int) -> Optional[Claim]:
+def get_claim_by_id(db: Session, claim_id: int) -> Claim:
     """
-    Approves the given claim. Returns updated claim, or None if not found.
+    Get a claim by its ID.
     """
     claim = db.query(Claim).filter_by(id=claim_id).first()
     if not claim:
+        raise HTTPException(status_code=404, detail="Claim not found")
+    return claim
+
+
+def approve_claim_by_id(db: Session, claim_id: int, tx_hash: Optional[str] = None) -> Optional[Claim]:
+    """
+    Approve a pending claim and deduct amount from wallet.
+    """
+    claim = db.query(Claim).filter_by(id=claim_id, status="pending").first()
+    if not claim:
         return None
 
-    claim.is_approved = True
+    salesman = db.query(Salesman).filter_by(id=claim.salesman_id).first()
+    if not salesman or salesman.wallet_balance < claim.amount:
+        return None
+
+    # Deduct from wallet
+    salesman.wallet_balance -= claim.amount
+
+    claim.status = "approved"
+    claim.tx_hash = tx_hash
     claim.updated_at = datetime.utcnow()
 
     try:
@@ -66,15 +81,17 @@ def approve_claim_by_id(db: Session, claim_id: int) -> Optional[Claim]:
     return claim
 
 
-def reject_claim_by_id(db: Session, claim_id: int) -> dict:
+def reject_claim_by_id(db: Session, claim_id: int, reason: Optional[str] = None) -> dict:
     """
-    Rejects a claim by setting its status to 'rejected'.
+    Reject a pending claim and optionally attach a rejection reason.
     """
     claim = db.query(Claim).filter_by(id=claim_id).first()
     if not claim:
         raise HTTPException(status_code=404, detail="Claim not found")
 
     claim.status = "rejected"
+    if reason:
+        claim.remarks = reason
     claim.updated_at = datetime.utcnow()
 
     try:
@@ -83,12 +100,12 @@ def reject_claim_by_id(db: Session, claim_id: int) -> dict:
         db.rollback()
         raise e
 
-    return {"message": "Claim rejected"}
+    return {"message": "Claim rejected", "id": claim.id}
 
 
 def amend_claim(db: Session, claim_id: int, new_remarks: str) -> dict:
     """
-    Update the remarks of a claim.
+    Update remarks for a claim.
     """
     claim = db.query(Claim).filter_by(id=claim_id).first()
     if not claim:
@@ -104,13 +121,3 @@ def amend_claim(db: Session, claim_id: int, new_remarks: str) -> dict:
         raise e
 
     return {"message": "Claim updated", "new_remarks": new_remarks}
-
-
-def get_claim_by_id(db: Session, claim_id: int) -> Claim:
-    """
-    Retrieve a claim by its ID.
-    """
-    claim = db.query(Claim).filter_by(id=claim_id).first()
-    if not claim:
-        raise HTTPException(status_code=404, detail="Claim not found")
-    return claim

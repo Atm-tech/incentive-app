@@ -4,11 +4,12 @@ class SalesmanCreate(BaseModel):
     name: str
     mobile: str
     outlet: str
+    verticle: str
     password: str
-
+    
 class SalesmanApprove(BaseModel):
     mobile: str
-    category: str
+    verticle: str
     password: str
 
 class SalesmanLogin(BaseModel):  # ⬅️ Add this
@@ -20,7 +21,9 @@ class SalesmanOut(BaseModel):
     name: str
     mobile: str
     outlet: str
+    verticle: str
+    wallet_balance: int
     is_approved: bool
 
     class Config:
-        orm_mode = True  # works fine in Pydantic v1 or `from_attributes` in v2
+        orm_mode = True

@@ -2,35 +2,31 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
+# ✅ Salesman: Submits a claim (withdrawal request)
 class ClaimRequest(BaseModel):
     remarks: Optional[str] = None
+    amount: float  # required amount to withdraw
 
+
+# ✅ Admin/Salesman: View a claim
 class ClaimOut(BaseModel):
     id: int
     salesman_id: int
-    total_amount: float
-    is_approved: bool
-    remarks: Optional[str] = None
-    timestamp: datetime
-
-    class Config:
-        from_attributes = True
-
-class ClaimOut(BaseModel):
-    id: int
-    salesman_id: int
-    total_amount: float
-    is_approved: bool
+    amount: float  # renamed from total_amount for clarity
+    status: str  # pending, approved, rejected
     remarks: Optional[str]
+    tx_hash: Optional[str] = None
     timestamp: datetime
 
-    # Extras for frontend
+    # Optional frontend extras
     salesman_name: Optional[str] = "Salesman"
-    reason: Optional[str] = None
+    reason: Optional[str] = None  # rejection reason if needed
 
     class Config:
         orm_mode = True
 
 
+# ✅ Admin: Update remarks or approve with tx_hash
 class ClaimUpdateRequest(BaseModel):
-    new_remarks: str
+    new_remarks: Optional[str] = None
+    tx_hash: Optional[str] = None

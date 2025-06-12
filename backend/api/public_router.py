@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from db.database import SessionLocal
 from models.outlet import Outlet
-from models.product import Product
+from models.verticle import Verticle
 
 router = APIRouter(prefix="/public", tags=["Public"])
 
@@ -22,7 +22,7 @@ def list_public_outlets(db: Session = Depends(get_db)):
 @router.get("/verticles", response_model=list[str])
 def list_unique_verticles(db: Session = Depends(get_db)):
     """
-    Return a list of unique verticle names from Product table.
+    Return a list of verticle names from Verticle table.
     """
-    results = db.query(Product.verticle).distinct().all()
+    results = db.query(Verticle.name).all()
     return [v[0] for v in results if v[0]]

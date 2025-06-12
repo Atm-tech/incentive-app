@@ -1,39 +1,69 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
 import AdminDashboard from "../pages/admin/AdminDashboard";
-import SalesmanDashboard from "../pages/SalesmanDashboard";
 import RequireAuth from "../auth/requireAuth";
+
+// Salesman screens
+import SalesmanLanding from "../pages/salesman/SalesmanLanding";
+import ProfilePage from "../pages/salesman/ProfilePage";
+import SalesPage from "../pages/salesman/SalesPage";
+
+// Role-aware protected route
+function RequireRole({ role, children }) {
+  const token = localStorage.getItem("token");
+  const userRole = localStorage.getItem("role");
+  if (!token) return <Navigate to="/login" />;
+  if (userRole !== role) return <Navigate to="/" />;
+  return children;
+}
 
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Default landing route → Signup */}
+        {/* Public Routes */}
         <Route path="/" element={<Signup />} />
-
-        {/* Login route */}
         <Route path="/login" element={<Login />} />
 
-        {/* Protected Admin route */}
+        {/* Admin - mounted as layout (subroutes inside) */}
         <Route
           path="/admin"
           element={
-            <RequireAuth>
+            <RequireRole role="admin">
               <AdminDashboard />
-            </RequireAuth>
+            </RequireRole>
           }
         />
 
-        {/* Protected Salesman route */}
+        {/* Salesman Pages */}
         <Route
           path="/salesman"
           element={
-            <RequireAuth>
-              <SalesmanDashboard />
-            </RequireAuth>
+            <RequireRole role="salesman">
+              <SalesmanLanding />
+            </RequireRole>
           }
         />
+        <Route
+          path="/salesman/profile"
+          element={
+            <RequireRole role="salesman">
+              <ProfilePage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/salesman/sales"
+          element={
+            <RequireRole role="salesman">
+              <SalesPage />
+            </RequireRole>
+          }
+        />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

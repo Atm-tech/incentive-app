@@ -4,12 +4,13 @@ from models.actual_sale import ActualSale
 from models.product import Product
 from models.incentive import Incentive
 from models.trait_config import TraitConfig
-
+from models.salesman import Salesman
 
 def generate_incentives(db: Session) -> dict:
     """
     Match sales with actual sales and calculate incentives based on product traits.
     Avoids duplicates using (salesman_id, barcode, trait) as unique key.
+    Also adds the incentive amount to salesman's wallet_balance.
     """
     sales = db.query(Sale).all()
     created = 0
@@ -45,6 +46,7 @@ def generate_incentives(db: Session) -> dict:
 
             earned = match.net_amount * trait_config.percentage
 
+            # Create new incentive
             incentive = Incentive(
                 salesman_id=sale.salesman_id,
                 barcode=sale.barcode,
@@ -54,6 +56,12 @@ def generate_incentives(db: Session) -> dict:
             )
 
             db.add(incentive)
+
+            # ✅ Update wallet balance
+            salesman = db.query(Salesman).filter_by(id=sale.salesman_id).first()
+            if salesman:
+                salesman.wallet_balance += earned
+
             created += 1
 
         if created > 0:

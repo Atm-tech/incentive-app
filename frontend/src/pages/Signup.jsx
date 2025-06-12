@@ -10,29 +10,39 @@ export default function Signup() {
     name: "",
     mobile: "",
     outlet: "",
+    verticle: "",
     password: "",
   });
+
   const [outlets, setOutlets] = useState([]);
+  const [verticles, setVerticles] = useState([]);
   const navigate = useNavigate();
 
+  // Fetch dropdown data on load
   useEffect(() => {
-    const fetchOutlets = async () => {
+    const fetchInitialData = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/api/public/outlets`);
-        setOutlets(res.data);
+        const outletRes = await axios.get(`${API_BASE_URL}/api/public/public/outlets`);
+        setOutlets(outletRes.data);
+
+        const verticleRes = await axios.get(`${API_BASE_URL}/api/public/public/verticles`);
+        setVerticles(verticleRes.data);
       } catch (err) {
-        console.error("Failed to load outlets:", err);
-        alert("Could not load outlet list.");
+        console.error("Error loading outlets/verticles:", err);
+        alert("Failed to load outlet or verticle list.");
       }
     };
-    fetchOutlets();
+
+    fetchInitialData();
   }, []);
 
+  // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Submit the form
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -40,16 +50,16 @@ export default function Signup() {
       alert("Signup successful! Please wait for admin approval.");
       navigate("/login");
     } catch (err) {
-      console.error("Signup error:", err);
-      alert("Signup failed");
+      console.error("Signup error:", err.response?.data || err.message);
+      alert(err.response?.data?.detail || "Signup failed. Please try again.");
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-50">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 bg-white p-6 rounded shadow"
+        className="w-full max-w-sm space-y-4 bg-white p-6 rounded shadow-md"
       >
         <h2 className="text-xl font-bold text-center">Create Your Account</h2>
 
@@ -60,6 +70,7 @@ export default function Signup() {
           onChange={handleChange}
           required
         />
+
         <Input
           label="Phone Number"
           name="mobile"
@@ -81,6 +92,24 @@ export default function Signup() {
             {outlets.map((outlet) => (
               <option key={outlet.id} value={outlet.name}>
                 {outlet.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm font-medium mb-1">Select Verticle</label>
+          <select
+            name="verticle"
+            value={formData.verticle}
+            onChange={handleChange}
+            required
+            className="border px-3 py-2 rounded text-sm"
+          >
+            <option value="">-- Select a verticle --</option>
+            {verticles.map((v) => (
+              <option key={v} value={v}>
+                {v}
               </option>
             ))}
           </select>

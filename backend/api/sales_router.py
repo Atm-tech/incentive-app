@@ -16,17 +16,13 @@ def get_db():
     finally:
         db.close()
 
-@router.post("/submit", response_model=SaleOut)
+@router.post("/submit", response_model=list[SaleOut])
 def create_sale(
     sale: SaleSubmit,
     db: Session = Depends(get_db),
     salesman=Depends(get_current_user_role("salesman"))
 ):
-    """
-    Salesman: Submit a sale entry.
-    """
-    sale.salesman_id = salesman.id
-    return submit_sale(db, sale)
+    return submit_sale(db, sale, salesman.id)
 
 @router.get("/my-sales", response_model=list[SaleOut])
 def my_sales(

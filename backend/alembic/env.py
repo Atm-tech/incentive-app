@@ -29,7 +29,7 @@ from models import (
     system,
     outlet,
     streak,
-    verticle
+    verticle,
 )
    # import your model files here (add others as needed)
 

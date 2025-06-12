@@ -2,33 +2,32 @@ from sqlalchemy.orm import Session
 from models.salesman import Salesman
 from schemas.salesman_schema import SalesmanCreate, SalesmanApprove
 from utils.hash import hash_password, verify_password
+from typing import Optional
+
 
 
 def create_salesman(db: Session, data: SalesmanCreate) -> Salesman:
-    """
-    Create a new salesman. They are unapproved by default.
-    Raises ValueError if mobile already exists.
-    """
     existing = db.query(Salesman).filter_by(mobile=data.mobile).first()
     if existing:
         raise ValueError("Salesman with this mobile already exists")
 
     new_salesman = Salesman(
-        name=data.name,
-        mobile=data.mobile,
-        outlet=data.outlet,
-        is_approved=False
+        name        = data.name,
+        mobile      = data.mobile,
+        outlet      = data.outlet,
+        verticle    = data.verticle,        # rename field later
+        password    = hash_password(data.password),
+        is_approved = False                  # or False if admin approval needed
     )
 
     try:
         db.add(new_salesman)
         db.commit()
         db.refresh(new_salesman)
+        return new_salesman
     except Exception as e:
         db.rollback()
-        raise e
-
-    return new_salesman
+        raise
 
 
 def get_pending_salesmen(db: Session) -> list[Salesman]:
@@ -38,22 +37,13 @@ def get_pending_salesmen(db: Session) -> list[Salesman]:
     return db.query(Salesman).filter_by(is_approved=False).all()
 
 
-def approve_salesman(db: Session, salesman_id: int, data: SalesmanApprove) -> Salesman | None:
-    """
-    Approve a salesman and set their password, outlet, and category.
-    Returns None if salesman not found.
-    """
-    salesman = db.query(Salesman).filter_by(id=salesman_id).first()
+def approve_salesman(db: Session, salesman_id: int, approve: bool) -> Optional[Salesman]:
+    salesman = db.query(Salesman).filter(Salesman.id == salesman_id).first()
+
     if not salesman:
         return None
 
-    if salesman.is_approved:
-        return salesman  # Already approved
-
-    salesman.outlet = data.outlet
-    salesman.category = data.category
-    salesman.password = hash_password(data.password)
-    salesman.is_approved = True
+    salesman.is_approved = approve
 
     try:
         db.commit()
@@ -63,6 +53,7 @@ def approve_salesman(db: Session, salesman_id: int, data: SalesmanApprove) -> Sa
         raise e
 
     return salesman
+
 
 
 def login_salesman_by_credentials(db: Session, mobile: str, password: str) -> Salesman | None:
@@ -80,11 +71,9 @@ def login_salesman_by_credentials(db: Session, mobile: str, password: str) -> Sa
     return salesman
 
 
-def get_salesman_by_phone(db: Session, mobile: str) -> Salesman | None:
-    """
-    Fetch a salesman by mobile number. Used for auth validation.
-    """
+def get_salesman_by_mobile(db: Session, mobile: str):
     return db.query(Salesman).filter_by(mobile=mobile).first()
+
 
 
 def get_all_approved_salesmen(db: Session) -> list[Salesman]:

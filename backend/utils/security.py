@@ -9,7 +9,7 @@ import os
 from dotenv import load_dotenv
 
 from utils.hash import verify_password, hash_password  # ✅ use only from hash.py
-from crud.salesman_crud import get_salesman_by_phone
+from crud.salesman_crud import get_salesman_by_mobile
 from db.database import SessionLocal
 
 load_dotenv()
@@ -60,7 +60,7 @@ def get_current_user_role(required_role: str):
             from crud.admin_crud import get_admin_by_phone
             user = get_admin_by_phone(db, mobile)
         else:
-            user = get_salesman_by_phone(db, mobile)
+            user = get_salesman_by_mobile(db, mobile)
 
         if not user:
             raise HTTPException(status_code=404, detail="User not found")

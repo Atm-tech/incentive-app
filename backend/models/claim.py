@@ -14,6 +14,7 @@ class Claim(Base):
     status = Column(String, default="pending")  # added for rejection tracking
     timestamp = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
-
+    amount = Column(Float)  # amount requested to withdraw
+    tx_hash = Column(String, nullable=True)
     salesman = relationship("Salesman", back_populates="claims")
 

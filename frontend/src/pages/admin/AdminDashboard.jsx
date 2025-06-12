@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import Sidebar from "./Sidebar";
+
+// ✅ Use the good Sidebar and Header (Navbar) from layout
+import Sidebar from "@/components/layout/Sidebar";
+import Header from "@/components/layout/Navbar"; // Rename to Header.jsx if needed
+import Card from "@/components/ui/Card";
+
+// ✅ Functional modules
 import OutletManager from "./OutletManager";
 import PendingSalesmen from "./PendingSalesmen";
 import UserManager from "./UserManager";
@@ -17,6 +23,7 @@ const AdminDashboard = () => {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // ✅ Dynamically load selected module
   const renderSection = () => {
     switch (activeSection) {
       case "outlets": return <OutletManager key={refreshKey} />;
@@ -32,19 +39,29 @@ const AdminDashboard = () => {
       case "traits": return <TraitsConfig key={refreshKey} />;
       case "setup": return <SetupPanel key={refreshKey} />;
       default:
-        return (
-          <div className="text-xl font-semibold">
-            Welcome to Admin Dashboard
-          </div>
-        );
+        return <div className="text-xl font-semibold">Welcome to Admin Dashboard</div>;
     }
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen bg-pink-100 text-gray-900">
+      {/* Sidebar (Sticky and collapsible) */}
       <Sidebar activeSection={activeSection} setActiveSection={setActiveSection} />
-      <div className="flex-1 p-4 overflow-y-auto">
-        {renderSection()}
+
+      {/* Right-hand Main Layout */}
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Sticky Top Header */}
+        <Header />
+
+        {/* Scrollable Module Area */}
+        <main className="flex-1 overflow-y-auto p-6">
+          {/* Centered Module Card with max width */}
+          <div className="w-full max-w-6xl mx-auto">
+            <Card title={activeSection.toUpperCase()}>
+              {renderSection()}
+            </Card>
+          </div>
+        </main>
       </div>
     </div>
   );

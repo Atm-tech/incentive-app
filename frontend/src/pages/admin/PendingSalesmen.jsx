@@ -5,6 +5,7 @@ import API_BASE_URL from "../../config";
 
 export default function PendingSalesmen() {
   const [pendingSalesmen, setPendingSalesmen] = useState([]);
+  const [loadingId, setLoadingId] = useState(null);
 
   const fetchPendingSalesmen = async () => {
     try {
@@ -14,35 +15,31 @@ export default function PendingSalesmen() {
       });
       setPendingSalesmen(res.data);
     } catch (err) {
+      setPendingSalesmen([]);
       console.error("Failed to fetch pending signups", err);
-    }
-  };
-
-  const handleApprove = async (salesmanId) => {
-    const category = prompt("Enter category (FMCG / Grocery / Hyper):");
-    const outlet = prompt("Enter outlet:");
-    const password = prompt("Set initial password:");
-
-    if (!category || !outlet || !password) return alert("All fields required.");
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.post(
-        `${API_BASE_URL}/api/auth/approve/${salesmanId}`,
-        { category, outlet, password },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      alert("Salesman approved");
-      fetchPendingSalesmen();
-    } catch (err) {
-      console.error("Approval failed", err);
-      alert("Failed to approve");
     }
   };
 
   useEffect(() => {
     fetchPendingSalesmen();
   }, []);
+
+  const handleAction = async (salesmanId, approve) => {
+    setLoadingId(`${salesmanId}-${approve}`);
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post(
+        `${API_BASE_URL}/api/auth/salesmen/${salesmanId}/approve`,
+        { approve }, // <-- send as { approve: true } or { approve: false }
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      fetchPendingSalesmen();
+    } catch (err) {
+      alert(`Failed to ${approve ? "approve" : "deny"}`);
+      console.error(`Failed to ${approve ? "approve" : "deny"} salesman`, err);
+    }
+    setLoadingId(null);
+  };
 
   return (
     <section className="border p-4 rounded shadow">
@@ -60,7 +57,21 @@ export default function PendingSalesmen() {
                 <p className="font-medium">{s.name}</p>
                 <p className="text-sm text-gray-600">📞 {s.mobile}</p>
               </div>
-              <Button onClick={() => handleApprove(s.id)}>Approve</Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleAction(s.id, true)}
+                  disabled={loadingId === `${s.id}-true`}
+                >
+                  {loadingId === `${s.id}-true` ? "Approving..." : "Approve"}
+                </Button>
+                <Button
+                  onClick={() => handleAction(s.id, false)}
+                  variant="secondary"
+                  disabled={loadingId === `${s.id}-false`}
+                >
+                  {loadingId === `${s.id}-false` ? "Denying..." : "Deny"}
+                </Button>
+              </div>
             </li>
           ))}
         </ul>

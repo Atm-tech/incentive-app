@@ -3,6 +3,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from db.database import SessionLocal
+from datetime import date
+from sqlalchemy import func
+from models.incentive import Incentive
 from schemas.incentive_schema import IncentiveOut
 from schemas.claim_schema import ClaimRequest, ClaimOut
 from crud.incentive_crud import (
@@ -107,3 +110,48 @@ def update_visibility(
         return {"message": "Visibility updated", "incentive_id": updated.id}
     except ValueError:
         raise HTTPException(status_code=404, detail="Incentive not found")
+
+@router.get("/incentive-summary")
+def incentive_summary(
+    db: Session = Depends(get_db),
+    salesman=Depends(get_current_user_role("salesman"))
+):
+    today = date.today()
+
+    total = db.query(func.sum(Incentive.amount)).filter(
+        Incentive.salesman_id == salesman.id,
+        Incentive.is_visible == True
+    ).scalar() or 0
+
+    today_total = db.query(func.sum(Incentive.amount)).filter(
+        Incentive.salesman_id == salesman.id,
+        Incentive.is_visible == True,
+        func.date(Incentive.timestamp) == today
+    ).scalar() or 0
+
+    return {"total": total, "today": today_total}
+
+@router.get("/rank")
+def get_rank(
+    db: Session = Depends(get_db),
+    salesman=Depends(get_current_user_role("salesman"))
+):
+    # Subquery: total incentive per salesman
+    subq = (
+        db.query(
+            Incentive.salesman_id,
+            func.sum(Incentive.amount).label("total_incentive")
+        )
+        .filter(Incentive.is_visible == True)
+        .group_by(Incentive.salesman_id)
+        .subquery()
+    )
+
+    # Fetch ranked list
+    ranked = db.query(subq).order_by(subq.c.total_incentive.desc()).all()
+
+    for i, row in enumerate(ranked):
+        if row.salesman_id == salesman.id:
+            return {"rank": i + 1}
+
+    return {"rank": None}

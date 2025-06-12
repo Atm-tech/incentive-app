@@ -51,7 +51,7 @@ def upgrade() -> None:
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('mobile', sa.String(), nullable=True),
     sa.Column('outlet', sa.String(), nullable=False),
-    sa.Column('category', sa.String(), nullable=True),
+    sa.Column('verticle', sa.String(), nullable=True),
     sa.Column('password', sa.String(), nullable=True),
     sa.Column('is_approved', sa.Boolean(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
