@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import Card from "@/components/ui/card";
+import Card from "@/components/ui/Card";
 import Button from "@/components/ui/button";
 import { toast } from "react-toastify";
 
