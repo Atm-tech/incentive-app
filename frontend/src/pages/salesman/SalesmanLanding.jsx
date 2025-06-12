@@ -10,7 +10,7 @@ export default function SalesmanLanding() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/salesman/stats', {
+    api.get('/salesman/salesman/stats', {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("access_token")}`
       }

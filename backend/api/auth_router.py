@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from schemas.auth_schema import ApproveRequest
-from utils.security import verify_password, create_access_token
+from utils.hash import verify_password
+from utils.security import create_access_token
 from schemas.auth_schema import LoginPayload
 from schemas.salesman_schema import (
     SalesmanCreate,
