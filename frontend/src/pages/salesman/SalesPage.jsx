@@ -42,7 +42,7 @@ export default function SalesPage() {
   );
 
   const submitSale = async () => {
-    await api.post('/sales', {
+    await api.post('/api/sales/submit', {
       items: items.map(({ barcode, qty, price, traitPercentage }) => ({
         barcode, qty, price, traitPercentage
       })),
