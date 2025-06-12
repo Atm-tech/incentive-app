@@ -37,7 +37,7 @@ def get_me(
 ):
     return salesman
 
-@router.get("/salesman/stats")
+@router.get("/stats")
 def get_salesman_stats(db: Session = Depends(get_db), current_user=Depends(get_current_salesman)):
     # Get total sales by salesman
     sales = db.query(Sale).filter(Sale.salesman_id == current_user.id).all()
