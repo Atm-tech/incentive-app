@@ -12,7 +12,7 @@ export default function SalesmanLanding() {
   useEffect(() => {
     api.get('/api/salesman/stats', {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`
+        Authorization: `Bearer ${localStorage.getItem("token")}`
       }
     })
       .then(res => setStats(res.data))
