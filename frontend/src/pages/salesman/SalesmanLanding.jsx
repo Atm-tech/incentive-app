@@ -10,7 +10,7 @@ export default function SalesmanLanding() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('salesman/stats', {
+    api.get('/api/salesman/stats', {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("access_token")}`
       }
@@ -28,7 +28,7 @@ export default function SalesmanLanding() {
         <h1 className="text-lg font-bold text-red-700">Dashboard</h1>
         <Card
           className="w-10 h-10 bg-gray-200 flex items-center justify-center rounded-full shadow"
-          onClick={() => navigate('/api/salesman/profile')}
+          onClick={() => navigate('/salesman/profile')}
         >
           <span className="text-xs text-gray-700">Me</span>
         </Card>
