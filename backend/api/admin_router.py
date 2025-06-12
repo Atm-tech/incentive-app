@@ -9,11 +9,12 @@ from db.database import SessionLocal
 from models.admin import Admin
 from crud.system_crud import get_status, mark_setup_complete
 from schemas.system_schema import SetupStatusOut
+from config import settings
+
 from utils.security import (
     get_current_user_role,
     hash_password,
-    MASTER_ADMIN_SECRET
-)
+    )
 from crud.admin_crud import get_admin_by_phone
 
 router = APIRouter(tags=["Admin"])
@@ -53,7 +54,7 @@ def create_admin(payload: AdminCreateRequest, db: Session = Depends(get_db)):
     """
     One-time Admin creation endpoint protected by MASTER_ADMIN_SECRET.
     """
-    if payload.master_key != MASTER_ADMIN_SECRET:
+    if payload.master_key != settings.master_admin_secret:
         raise HTTPException(status_code=403, detail="Invalid master key")
 
     if get_admin_by_phone(db, payload.mobile):
