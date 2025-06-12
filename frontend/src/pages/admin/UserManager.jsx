@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Card from "@/components/ui/Card";
-import Button from "@/components/ui/button";
+import Button from "@/components/ui/Button";
 import { toast } from "react-toastify";
 
 const UserManager = () => {
