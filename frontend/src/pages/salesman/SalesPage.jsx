@@ -42,7 +42,32 @@ export default function SalesPage() {
     return () => {
       reader.reset();
     };
-  }, [scanning]);  // Barcode scanner setup
+  }, [scanning, onDetected]);
+  
+  return (
+    <div className="mt-4 flex justify-center">
+      <div
+        style={{
+          transform: 'scale(1.5)',
+          transformOrigin: 'center center',
+          overflow: 'hidden',
+          width: '640px',
+          height: '480px'
+        }}
+      >
+        <Webcam
+          ref={webcamRef}
+          width={640}
+          height={480}
+          videoConstraints={{
+            facingMode: 'environment',
+            advanced: [{ zoom: 3 }]
+          }}
+        />
+      </div>
+    </div>
+  );
+}// Barcode scanner setup
   
   const handleScan = async (code) => {
     if (!code) return;
