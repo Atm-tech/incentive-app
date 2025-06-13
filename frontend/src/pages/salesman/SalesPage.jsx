@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Webcam from 'react-webcam';
-import { BrowserMultiFormatReader } from '@zxing/browser';
+import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/browser';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -12,62 +12,92 @@ export default function SalesPage() {
   const webcamRef = useRef(null);
   const codeReader = useRef(null);
   const beepSound = useRef(null);
+  const recognitionRef = useRef(null);
+
   const [scanning, setScanning] = useState(true);
   const [items, setItems] = useState([]);
   const [customer, setCustomer] = useState({ name: '', phone: '' });
+  const [manualBarcode, setManualBarcode] = useState('');
   const navigate = useNavigate();
 
-  // Load beep on mount
+  // Load beep
   useEffect(() => {
     beepSound.current = new Audio(beepAudio);
   }, []);
 
-  // Scan barcode every second
+  // Barcode scanner setup
   useEffect(() => {
     if (!webcamRef.current || !scanning) return;
 
-    codeReader.current = new BrowserMultiFormatReader();
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.EAN_13, BarcodeFormat.UPC_A]);
 
-    const interval = setInterval(() => {
-      const video = webcamRef.current.video;
-      if (video?.readyState === 4) {
-        codeReader.current
-          .decodeOnceFromVideoElement(video)
-          .then((result) => {
-            if (result) {
-              handleScan(result.getText());
-            }
-          })
-          .catch(() => {});
+    const reader = new BrowserMultiFormatReader(hints);
+    codeReader.current = reader;
+
+    reader.decodeFromVideoDevice(null, webcamRef.current.video, (result, err) => {
+      if (result) {
+        handleScan(result.getText());
+        reader.reset();
+        setTimeout(() => setScanning(true), 1500);
       }
-    }, 1000);
+    });
 
     return () => {
-      clearInterval(interval);
-      codeReader.current?.reset();
+      reader.reset();
     };
   }, [scanning]);
 
   const handleScan = async (code) => {
     if (!code) return;
     setScanning(false);
-
-    // 🔊 Beep
     if (beepSound.current) beepSound.current.play();
 
     try {
-      const { price, traitPercentage } = await api.get(`/products/${code}`)
-        .then((r) => r.data);
-
-      setItems((prev) => [
-        ...prev,
-        { barcode: code, qty: 1, price, traitPercentage },
-      ]);
+      const { price, traitPercentage } = await api.get(`/products/${code}`).then((r) => r.data);
+      setItems((prev) => [...prev, { barcode: code, qty: 1, price, traitPercentage }]);
     } catch (e) {
-      console.error("Product not found:", e);
+      console.error("Product not found");
     } finally {
-      setTimeout(() => setScanning(true), 1500); // Cooldown before next scan
+      setTimeout(() => setScanning(true), 1500);
     }
+  };
+
+  const handleManualEntry = async (code) => {
+    if (!code) return;
+    if (beepSound.current) beepSound.current.play();
+
+    try {
+      const { price, traitPercentage } = await api.get(`/products/${code}`).then((r) => r.data);
+      setItems((prev) => [...prev, { barcode: code, qty: 1, price, traitPercentage }]);
+      setManualBarcode('');
+    } catch (e) {
+      alert("Product not found");
+    }
+  };
+
+  const startListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return alert("Your browser doesn't support speech input");
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'hi-IN'; // for Hindi & English mix
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      const spoken = event.results[0][0].transcript;
+      const numeric = spoken.replace(/\D/g, ''); // keep only digits
+      handleManualEntry(numeric);
+    };
+
+    recognition.onerror = (e) => {
+      console.error("Voice error:", e);
+      alert("Voice input failed");
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
   };
 
   const updateQty = (idx, qty) => {
@@ -101,17 +131,31 @@ export default function SalesPage() {
       </header>
 
       <div className="mt-4 flex justify-center">
-        <Webcam ref={webcamRef} width={300} height={200} />
+        <Webcam
+          ref={webcamRef}
+          width={640}
+          height={480}
+          videoConstraints={{ facingMode: "environment" }}
+        />
       </div>
+
+      <Card className="mt-4 p-4 flex gap-2 items-center">
+        <Input
+          label="Manual Barcode"
+          placeholder="Enter or speak barcode"
+          value={manualBarcode}
+          onChange={(e) => setManualBarcode(e.target.value)}
+          className="flex-1"
+        />
+        <Button onClick={() => handleManualEntry(manualBarcode)}>➕</Button>
+        <Button onClick={startListening}>🎙️</Button>
+      </Card>
 
       <Card className="mt-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr>
-              <th>SNO</th>
-              <th>BARCODE</th>
-              <th>QTY</th>
-              <th>AMOUNT</th>
+              <th>SNO</th><th>BARCODE</th><th>QTY</th><th>AMOUNT</th>
             </tr>
           </thead>
           <tbody>
@@ -127,9 +171,7 @@ export default function SalesPage() {
                     className="w-16"
                   />
                 </td>
-                <td>
-                  {(it.price * it.qty * (it.traitPercentage / 100)).toFixed(2)}
-                </td>
+                <td>{(it.price * it.qty * (it.traitPercentage / 100)).toFixed(2)}</td>
               </tr>
             ))}
             <tr>
