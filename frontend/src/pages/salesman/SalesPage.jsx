@@ -6,10 +6,13 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import api from '../../lib/api';
+import beepAudio from '../../assets/beep.mp3';
 
 export default function SalesPage() {
   const webcamRef = useRef(null);
   const codeReader = useRef(null);
+  const beepSound = useRef(null);
+  const recognitionRef = useRef(null);
 
   const [scanning, setScanning] = useState(true);
   const [items, setItems] = useState([]);
@@ -17,6 +20,12 @@ export default function SalesPage() {
   const [manualBarcode, setManualBarcode] = useState('');
   const navigate = useNavigate();
 
+  // Load beep
+  useEffect(() => {
+    beepSound.current = new Audio(beepAudio);
+  }, []);
+
+  // Barcode scanner setup
   useEffect(() => {
     if (!webcamRef.current || !scanning) return;
 
@@ -42,6 +51,7 @@ export default function SalesPage() {
   const handleScan = async (code) => {
     if (!code) return;
     setScanning(false);
+    if (beepSound.current) beepSound.current.play();
 
     try {
       const { price, traitPercentage } = await api.get(`/products/${code}`).then((r) => r.data);
@@ -55,6 +65,7 @@ export default function SalesPage() {
 
   const handleManualEntry = async (code) => {
     if (!code) return;
+    if (beepSound.current) beepSound.current.play();
 
     try {
       const { price, traitPercentage } = await api.get(`/products/${code}`).then((r) => r.data);
@@ -63,6 +74,30 @@ export default function SalesPage() {
     } catch (e) {
       alert("Product not found");
     }
+  };
+
+  const startListening = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return alert("Your browser doesn't support speech input");
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'hi-IN'; // for Hindi & English mix
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      const spoken = event.results[0][0].transcript;
+      const numeric = spoken.replace(/\D/g, ''); // keep only digits
+      handleManualEntry(numeric);
+    };
+
+    recognition.onerror = (e) => {
+      console.error("Voice error:", e);
+      alert("Voice input failed");
+    };
+
+    recognition.start();
+    recognitionRef.current = recognition;
   };
 
   const updateQty = (idx, qty) => {
@@ -107,12 +142,13 @@ export default function SalesPage() {
       <Card className="mt-4 p-4 flex gap-2 items-center">
         <Input
           label="Manual Barcode"
-          placeholder="Enter barcode manually"
+          placeholder="Enter or speak barcode"
           value={manualBarcode}
           onChange={(e) => setManualBarcode(e.target.value)}
           className="flex-1"
         />
         <Button onClick={() => handleManualEntry(manualBarcode)}>➕</Button>
+        <Button onClick={startListening}>🎙️</Button>
       </Card>
 
       <Card className="mt-4 overflow-x-auto">
