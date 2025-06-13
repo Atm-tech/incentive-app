@@ -6,7 +6,7 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import api from '../../lib/api';
-import beepAudio from '../../src/assets/beep.flac';
+import beepAudio from '../../assets/beep.flac';
 
 export default function SalesPage() {
   const webcamRef = useRef(null);
