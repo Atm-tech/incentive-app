@@ -1,38 +1,77 @@
-import React, { useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import BarcodeScanner from 'react-qr-barcode-scanner';
+import Webcam from 'react-webcam';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import api from '../../lib/api';
+import beepAudio from '../../assets/beep.flac';
 
 export default function SalesPage() {
+  const webcamRef = useRef(null);
+  const codeReader = useRef(null);
+  const beepSound = useRef(null);
   const [scanning, setScanning] = useState(true);
   const [items, setItems] = useState([]);
   const [customer, setCustomer] = useState({ name: '', phone: '' });
   const navigate = useNavigate();
 
-  const onDetected = useCallback(async (code) => {
+  // Load beep on mount
+  useEffect(() => {
+    beepSound.current = new Audio(beepAudio);
+  }, []);
+
+  // Scan barcode every second
+  useEffect(() => {
+    if (!webcamRef.current || !scanning) return;
+
+    codeReader.current = new BrowserMultiFormatReader();
+
+    const interval = setInterval(() => {
+      const video = webcamRef.current.video;
+      if (video?.readyState === 4) {
+        codeReader.current
+          .decodeOnceFromVideoElement(video)
+          .then((result) => {
+            if (result) {
+              handleScan(result.getText());
+            }
+          })
+          .catch(() => {});
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      codeReader.current?.reset();
+    };
+  }, [scanning]);
+
+  const handleScan = async (code) => {
     if (!code) return;
     setScanning(false);
 
+    // 🔊 Beep
+    if (beepSound.current) beepSound.current.play();
+
     try {
       const { price, traitPercentage } = await api.get(`/products/${code}`)
-        .then(r => r.data);
+        .then((r) => r.data);
 
-      setItems(prev => [
+      setItems((prev) => [
         ...prev,
-        { barcode: code, qty: 1, price, traitPercentage }
+        { barcode: code, qty: 1, price, traitPercentage },
       ]);
     } catch (e) {
-      console.error(e);
+      console.error("Product not found:", e);
     } finally {
-      setScanning(true);
+      setTimeout(() => setScanning(true), 1500); // Cooldown before next scan
     }
-  }, []);
+  };
 
   const updateQty = (idx, qty) => {
-    setItems(items.map((it, i) => i === idx ? { ...it, qty } : it));
+    setItems(items.map((it, i) => (i === idx ? { ...it, qty } : it)));
   };
 
   const total = items.reduce(
@@ -44,9 +83,12 @@ export default function SalesPage() {
   const submitSale = async () => {
     await api.post('/api/sales/submit', {
       items: items.map(({ barcode, qty, price, traitPercentage }) => ({
-        barcode, qty, price, traitPercentage
+        barcode,
+        qty,
+        price,
+        traitPercentage,
       })),
-      customer
+      customer,
     });
     navigate('/salesman');
   };
@@ -54,30 +96,22 @@ export default function SalesPage() {
   return (
     <div className="p-4 bg-pink-100 min-h-screen">
       <header className="bg-red-600 p-3 flex items-center">
-        <Card
-          className="w-10 h-10 mr-2 bg-gray-200 cursor-pointer"
-          onClick={() => navigate(-1)}
-        />
+        <Card className="w-10 h-10 mr-2 bg-gray-200 cursor-pointer" onClick={() => navigate(-1)} />
         <h1 className="text-white text-lg">SALES PAGE</h1>
       </header>
 
-      <div className="mt-4">
-        {scanning && (
-          <BarcodeScanner
-            width={300}
-            height={200}
-            onUpdate={(err, result) => {
-              if (result) onDetected(result.text);
-            }}
-          />
-        )}
+      <div className="mt-4 flex justify-center">
+        <Webcam ref={webcamRef} width={300} height={200} />
       </div>
 
       <Card className="mt-4 overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr>
-              <th>SNO</th><th>BARCODE</th><th>QTY</th><th>AMOUNT</th>
+              <th>SNO</th>
+              <th>BARCODE</th>
+              <th>QTY</th>
+              <th>AMOUNT</th>
             </tr>
           </thead>
           <tbody>
@@ -89,7 +123,7 @@ export default function SalesPage() {
                   <Input
                     type="number"
                     value={it.qty}
-                    onChange={e => updateQty(i, +e.target.value)}
+                    onChange={(e) => updateQty(i, +e.target.value)}
                     className="w-16"
                   />
                 </td>
@@ -111,12 +145,12 @@ export default function SalesPage() {
         <Input
           label="Name"
           value={customer.name}
-          onChange={e => setCustomer({ ...customer, name: e.target.value })}
+          onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
         />
         <Input
           label="Number"
           value={customer.phone}
-          onChange={e => setCustomer({ ...customer, phone: e.target.value })}
+          onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
         />
       </Card>
 
