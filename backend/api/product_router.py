@@ -9,7 +9,8 @@ from db.database import SessionLocal
 from schemas.product_schema import ProductSubmit
 from crud.product_crud import upsert_product, upsert_products_from_file
 from utils.security import get_current_user_role
-
+from models.product import Product
+from models.trait_config import TraitConfig
 router = APIRouter(prefix="/api/products", tags=["Products"])
 
 # 🔌 DB Dependency
@@ -58,3 +59,24 @@ def add_product(
         return {"message": "Product saved", "barcode": payload.barcode}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save product: {str(e)}")
+
+@router.get("/{barcode}")
+def get_product(barcode: str, db: Session = Depends(get_db)):
+    barcode = barcode.strip()
+
+    product = db.query(Product).filter(Product.barcode == barcode).first()
+    if not product:
+        product = db.query(Product).filter(Product.barcode.like(f"%{barcode}%")).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # Get the trait config percentage
+    trait_config = db.query(TraitConfig).filter(TraitConfig.trait == product.trait).first()
+    if not trait_config:
+        raise HTTPException(status_code=404, detail="Trait percentage not found")
+
+    return {
+        "barcode": product.barcode,
+        "price": product.rsp,
+        "traitPercentage": trait_config.percentage
+    }

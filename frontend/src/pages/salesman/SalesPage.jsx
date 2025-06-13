@@ -64,7 +64,7 @@ export default function SalesPage() {
     if (beepSound.current) beepSound.current.play();
 
     try {
-      const { price, traitPercentage } = await api.get(`/products/${code}`).then((r) => r.data);
+      const { price, traitPercentage } = await api.get(`api/products/api/products/${code}`).then((r) => r.data);
       setItems((prev) => [...prev, { barcode: code, qty: 1, price, traitPercentage }]);
       setManualBarcode('');
     } catch (e) {
