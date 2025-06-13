@@ -24,7 +24,7 @@ export default function ProductManager() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.post(`${API_BASE_URL}/api/products/upload-file`, formData, {
+      const res = await axios.post(`${API_BASE_URL}/api/products/api/products/upload-file`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -42,7 +42,7 @@ export default function ProductManager() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.post(`${API_BASE_URL}/api/products/add`, manual, {
+      const res = await axios.post(`${API_BASE_URL}/api/products/api/products/add`, manual, {
         headers: { Authorization: `Bearer ${token}` },
       });
       alert("Product saved: " + res.data.message);
