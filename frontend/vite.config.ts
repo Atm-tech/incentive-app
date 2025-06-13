@@ -16,5 +16,5 @@ export default defineConfig({
       url: 'url'
     },
   },
-  assetsInclude: ['**/*.flac', '**/*.mp3', '**/*.wav'], // 👈 Add all supported audio types
+  assetsInclude: ['**/*.mp3'], // 👈 Add all supported audio types
 });
