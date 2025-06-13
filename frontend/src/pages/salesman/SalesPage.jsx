@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Webcam from 'react-webcam';
-import { BrowserMultiFormatReader, BarcodeFormat, DecodeHintType } from '@zxing/browser';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
@@ -25,14 +25,10 @@ export default function SalesPage() {
     beepSound.current = new Audio(beepAudio);
   }, []);
 
-  // Barcode scanner setup
   useEffect(() => {
     if (!webcamRef.current || !scanning) return;
 
-    const hints = new Map();
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_128, BarcodeFormat.EAN_13, BarcodeFormat.UPC_A]);
-
-    const reader = new BrowserMultiFormatReader(hints);
+    const reader = new BrowserMultiFormatReader();
     codeReader.current = reader;
 
     reader.decodeFromVideoDevice(null, webcamRef.current.video, (result, err) => {
@@ -46,8 +42,8 @@ export default function SalesPage() {
     return () => {
       reader.reset();
     };
-  }, [scanning]);
-
+  }, [scanning]);  // Barcode scanner setup
+  
   const handleScan = async (code) => {
     if (!code) return;
     setScanning(false);
