@@ -25,6 +25,7 @@ export default function SalesPage() {
     beepSound.current = new Audio(beepAudio);
   }, []);
 
+  // Barcode scanner setup with zoom
   useEffect(() => {
     if (!webcamRef.current || !scanning) return;
 
@@ -42,40 +43,15 @@ export default function SalesPage() {
     return () => {
       reader.reset();
     };
-  }, [scanning, onDetected]);
-  
-  return (
-    <div className="mt-4 flex justify-center">
-      <div
-        style={{
-          transform: 'scale(1.5)',
-          transformOrigin: 'center center',
-          overflow: 'hidden',
-          width: '640px',
-          height: '480px'
-        }}
-      >
-        <Webcam
-          ref={webcamRef}
-          width={640}
-          height={480}
-          videoConstraints={{
-            facingMode: 'environment',
-            advanced: [{ zoom: 3 }]
-          }}
-        />
-      </div>
-    </div>
-  );
-}// Barcode scanner setup
-  
+  }, [scanning]);
+
   const handleScan = async (code) => {
     if (!code) return;
     setScanning(false);
     if (beepSound.current) beepSound.current.play();
 
     try {
-      const { price, traitPercentage } = await api.get(`/products/${code}`).then((r) => r.data);
+      const { price, traitPercentage } = await api.get(`api/products/api/products/${code}`).then((r) => r.data);
       setItems((prev) => [...prev, { barcode: code, qty: 1, price, traitPercentage }]);
     } catch (e) {
       console.error("Product not found");
@@ -102,13 +78,13 @@ export default function SalesPage() {
     if (!SpeechRecognition) return alert("Your browser doesn't support speech input");
 
     const recognition = new SpeechRecognition();
-    recognition.lang = 'hi-IN'; // for Hindi & English mix
+    recognition.lang = 'hi-IN';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (event) => {
       const spoken = event.results[0][0].transcript;
-      const numeric = spoken.replace(/\D/g, ''); // keep only digits
+      const numeric = spoken.replace(/\D/g, '');
       handleManualEntry(numeric);
     };
 
@@ -152,12 +128,25 @@ export default function SalesPage() {
       </header>
 
       <div className="mt-4 flex justify-center">
-        <Webcam
-          ref={webcamRef}
-          width={640}
-          height={480}
-          videoConstraints={{ facingMode: "environment" }}
-        />
+        <div
+          style={{
+            transform: 'scale(1.5)',
+            transformOrigin: 'center center',
+            overflow: 'hidden',
+            width: '640px',
+            height: '480px'
+          }}
+        >
+          <Webcam
+            ref={webcamRef}
+            width={640}
+            height={480}
+            videoConstraints={{
+              facingMode: 'environment',
+              advanced: [{ zoom: 3 }]
+            }}
+          />
+        </div>
       </div>
 
       <Card className="mt-4 p-4 flex gap-2 items-center">
