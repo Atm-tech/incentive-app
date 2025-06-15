@@ -28,7 +28,7 @@ app = FastAPI(title="Incentive Management System")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://incentive-app-eta.vercel.app","https://securities-region-disputes-baseline.trycloudflare.com"],
+    allow_origins=["http://localhost:5173", "https://incentive-app-eta.vercel.app","https://watch-psychiatry-total-belkin.trycloudflare.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
