@@ -12,23 +12,27 @@ export default function SalesPage() {
   const [manualBarcode, setManualBarcode] = useState('');
   const navigate = useNavigate();
 
-  // 🔐 Token Guard
+  // Validate JWT on load
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) return navigate('/login');
     try {
-      jwtDecode(token);
+      const raw = localStorage.getItem("access_token");
+      if (!raw) throw new Error("No token");
+
+      jwtDecode(raw); // Just check validity
     } catch {
-      localStorage.removeItem('access_token');
+      localStorage.removeItem("access_token");
       navigate('/login');
     }
-  }, []);
+  }, [navigate]);
 
-  // ➕ Manual Barcode Entry
   const handleManualEntry = async (code) => {
     if (!code) return;
+
     try {
-      const { price, traitPercentage } = await api.get(`/api/products/${code}`).then(r => r.data);
+      const { price, traitPercentage } = await api
+        .get(`/api/products/${code}`)
+        .then((r) => r.data);
+
       setItems((prev) => {
         const existing = prev.find((i) => i.barcode === code);
         if (existing) {
@@ -38,6 +42,7 @@ export default function SalesPage() {
         }
         return [...prev, { barcode: code, qty: 1, price, traitPercentage }];
       });
+
       setManualBarcode('');
     } catch {
       alert("Product not found");
@@ -45,7 +50,7 @@ export default function SalesPage() {
   };
 
   const updateQty = (idx, qty) => {
-    setItems(items.map((item, i) => (i === idx ? { ...item, qty } : item)));
+    setItems(items.map((it, i) => (i === idx ? { ...it, qty } : it)));
   };
 
   const total = items.reduce(
@@ -56,8 +61,8 @@ export default function SalesPage() {
 
   const submitSale = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const decoded = jwtDecode(token);
+      const raw = localStorage.getItem("access_token");
+      const decoded = jwtDecode(raw);
       const salesman_id = decoded.id;
 
       await api.post('/api/sales/submit', {
@@ -68,15 +73,14 @@ export default function SalesPage() {
       });
 
       navigate('/salesman');
-    } catch (err) {
-      alert('Failed to submit sale');
-      console.error(err);
+    } catch (error) {
+      alert("Failed to submit sale");
+      console.error(error);
     }
   };
 
   return (
     <div className="p-4 bg-pink-100 min-h-screen">
-      {/* 🔻 Header */}
       <header className="bg-red-600 p-3 flex items-center justify-center relative">
         <Card
           className="w-10 h-10 absolute left-4 bg-gray-200 cursor-pointer"
@@ -85,8 +89,8 @@ export default function SalesPage() {
         <h1 className="text-white text-lg">SALES PAGE</h1>
       </header>
 
-      {/* ➕ Manual Entry */}
-      <Card className="mt-6 p-4 flex flex-col items-center space-y-2">
+      {/* Manual Entry */}
+      <Card className="mt-4 p-4 flex flex-col items-center space-y-2">
         <Input
           label="Manual Barcode"
           placeholder="Enter barcode"
@@ -94,10 +98,12 @@ export default function SalesPage() {
           onChange={(e) => setManualBarcode(e.target.value)}
           className="w-full"
         />
-        <Button onClick={() => handleManualEntry(manualBarcode)}>➕ Add</Button>
+        <div className="flex gap-2">
+          <Button onClick={() => handleManualEntry(manualBarcode)}>➕</Button>
+        </div>
       </Card>
 
-      {/* 🧾 Scanned List */}
+      {/* Scanned Items */}
       <Card className="mt-4 overflow-x-auto text-center p-4">
         <table className="w-full text-sm">
           <thead>
@@ -106,19 +112,19 @@ export default function SalesPage() {
             </tr>
           </thead>
           <tbody>
-            {items.map((item, i) => (
+            {items.map((it, i) => (
               <tr key={i}>
                 <td>{i + 1}</td>
-                <td>{item.barcode}</td>
+                <td>{it.barcode}</td>
                 <td>
                   <Input
                     type="number"
-                    value={item.qty}
+                    value={it.qty}
                     onChange={(e) => updateQty(i, +e.target.value)}
                     className="w-16"
                   />
                 </td>
-                <td>{(item.price * item.qty * (item.traitPercentage / 100)).toFixed(2)}</td>
+                <td>{(it.price * it.qty * (it.traitPercentage / 100)).toFixed(2)}</td>
               </tr>
             ))}
             <tr>
@@ -129,7 +135,7 @@ export default function SalesPage() {
         </table>
       </Card>
 
-      {/* 🧑 Customer Info */}
+      {/* Customer Info */}
       <Card className="mt-4 p-4 text-center">
         <p className="font-semibold mb-2">CUSTOMER DETAILS</p>
         <Input
@@ -138,13 +144,13 @@ export default function SalesPage() {
           onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
         />
         <Input
-          label="Phone"
+          label="Number"
           value={customer.phone}
           onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
         />
       </Card>
 
-      {/* ✅ Submit */}
+      {/* Submit */}
       <div className="mt-6 text-center mb-8">
         <Button
           onClick={submitSale}
