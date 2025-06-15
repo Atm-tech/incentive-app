@@ -68,14 +68,13 @@ export default function SalesPage() {
     reader.decodeFromVideoDevice(null, webcamRef.current.video, (result, err) => {
       if (result) {
         handleScan(result.getText());
-        
+        y
         setTimeout(() => setScanning(true), 1500);
       }
     });
 
-    return () => {
-      reader.reset();
-    };
+    return () => reader.reset();
+    
   }, [scanning]);
 
   const handleManualEntry = async (code) => {
