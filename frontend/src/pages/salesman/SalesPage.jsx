@@ -11,17 +11,17 @@ import api from '../../lib/api';
 export default function SalesPage() {
   const webcamRef = useRef(null);
   const codeReader = useRef(null);
+  const navigate = useNavigate();
 
   const [scanning, setScanning] = useState(true);
   const [items, setItems] = useState([]);
   const [customer, setCustomer] = useState({ name: '', phone: '' });
   const [manualBarcode, setManualBarcode] = useState('');
-  const navigate = useNavigate();
 
+  // Check JWT on mount
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (!token) return navigate('/login');
-
     try {
       jwtDecode(token);
     } catch {
@@ -30,15 +30,13 @@ export default function SalesPage() {
     }
   }, []);
 
+  // Scan Handler
   const handleScan = async (code) => {
     if (!code) return;
     setScanning(false);
 
     try {
-      const { price, traitPercentage } = await api
-        .get(`/api/products/api/products/${code}`)
-        .then((r) => r.data);
-
+      const { price, traitPercentage } = await api.get(`/api/products/${code}`).then((r) => r.data);
       setItems((prev) => {
         const existing = prev.find((i) => i.barcode === code);
         if (existing) {
@@ -55,6 +53,7 @@ export default function SalesPage() {
     }
   };
 
+  // Barcode Scanner Initialization
   useEffect(() => {
     if (!webcamRef.current || !scanning) return;
 
@@ -67,17 +66,16 @@ export default function SalesPage() {
       }
     });
 
-    return () => reader.reset();
+    return () => {
+      if (codeReader.current?.reset) codeReader.current.reset();
+    };
   }, [scanning]);
 
   const handleManualEntry = async (code) => {
     if (!code) return;
 
     try {
-      const { price, traitPercentage } = await api
-        .get(`/api/products/api/products/${code}`)
-        .then((r) => r.data);
-
+      const { price, traitPercentage } = await api.get(`/api/products/${code}`).then((r) => r.data);
       setItems((prev) => {
         const existing = prev.find((i) => i.barcode === code);
         if (existing) {
@@ -107,7 +105,6 @@ export default function SalesPage() {
     try {
       const token = localStorage.getItem("access_token");
       if (!token) return navigate('/login');
-
       const decoded = jwtDecode(token);
       const salesman_id = decoded.id;
 
