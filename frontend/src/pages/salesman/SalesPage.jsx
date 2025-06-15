@@ -139,8 +139,8 @@ export default function SalesPage() {
         >
           <Webcam
             ref={webcamRef}
-            width={640}
-            height={480}
+            width={540}
+            height={180}
             videoConstraints={{
               facingMode: 'environment',
               advanced: [{ zoom: 3 }]
