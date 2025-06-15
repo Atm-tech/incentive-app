@@ -11,13 +11,29 @@ import api from '../../lib/api';
 export default function SalesPage() {
   const webcamRef = useRef(null);
   const codeReader = useRef(null);
-  const recognitionRef = useRef(null);
 
   const [scanning, setScanning] = useState(true);
   const [items, setItems] = useState([]);
   const [customer, setCustomer] = useState({ name: '', phone: '' });
   const [manualBarcode, setManualBarcode] = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Ensure token exists or redirect
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      jwtDecode(token); // Just to validate
+    } catch (err) {
+      console.error("Invalid token");
+      localStorage.removeItem("access_token");
+      navigate('/login');
+    }
+  }, []);
 
   const handleScan = async (code) => {
     if (!code) return;
@@ -84,30 +100,6 @@ export default function SalesPage() {
     }
   };
 
-  const startListening = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) return alert("Your browser doesn't support speech input");
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'hi-IN';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    recognition.onresult = (event) => {
-      const spoken = event.results[0][0].transcript;
-      const numeric = spoken.replace(/\D/g, '');
-      handleManualEntry(numeric);
-    };
-
-    recognition.onerror = (e) => {
-      console.error("Voice error:", e);
-      alert("Voice input failed");
-    };
-
-    recognition.start();
-    recognitionRef.current = recognition;
-  };
-
   const updateQty = (idx, qty) => {
     setItems(items.map((it, i) => (i === idx ? { ...it, qty } : it)));
   };
@@ -121,6 +113,8 @@ export default function SalesPage() {
   const submitSale = async () => {
     try {
       const token = localStorage.getItem("access_token");
+      if (!token) return navigate('/login');
+
       const decoded = jwtDecode(token);
       const salesman_id = decoded.id;
 
@@ -174,18 +168,17 @@ export default function SalesPage() {
         <p className="text-center text-xs text-gray-500 mt-1">Camera panel (3× zoom)</p>
       </Card>
 
-      {/* Manual Entry + Voice */}
+      {/* Manual Entry */}
       <Card className="mt-4 p-4 flex flex-col items-center space-y-2">
         <Input
           label="Manual Barcode"
-          placeholder="Enter or speak barcode"
+          placeholder="Enter barcode"
           value={manualBarcode}
           onChange={(e) => setManualBarcode(e.target.value)}
           className="w-full"
         />
         <div className="flex gap-2">
           <Button onClick={() => handleManualEntry(manualBarcode)}>➕</Button>
-          <Button onClick={startListening}>🎙️</Button>
         </div>
       </Card>
 
@@ -221,7 +214,7 @@ export default function SalesPage() {
         </table>
       </Card>
 
-      {/* Customer Form */}
+      {/* Customer Info */}
       <Card className="mt-4 p-4 text-center">
         <p className="font-semibold mb-2">CUSTOMER DETAILS</p>
         <Input
@@ -236,7 +229,7 @@ export default function SalesPage() {
         />
       </Card>
 
-      {/* Submit Button */}
+      {/* Submit */}
       <div className="mt-6 text-center mb-8">
         <Button
           onClick={submitSale}
