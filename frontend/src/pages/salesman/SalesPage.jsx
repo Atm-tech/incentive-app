@@ -140,45 +140,58 @@ export default function SalesPage() {
 
   return (
     <div className="p-4 bg-pink-100 min-h-screen">
-      <header className="bg-red-600 p-3 flex items-center justify-center">
-        <Card className="w-10 h-10 absolute left-4 bg-gray-200 cursor-pointer" onClick={() => navigate(-1)} />
+      <header className="bg-red-600 p-3 flex items-center justify-center relative">
+        <Card
+          className="w-10 h-10 absolute left-4 bg-gray-200 cursor-pointer"
+          onClick={() => navigate(-1)}
+        />
         <h1 className="text-white text-lg">SALES PAGE</h1>
       </header>
 
-      <div className="mt-4 flex justify-center">
-        <div style={{
-          transform: 'scale(1.5)',
-          transformOrigin: 'center center',
-          overflow: 'hidden',
-          width: '640px',
-          height: '480px'
-        }}>
-          <Webcam
-            ref={webcamRef}
-            width={640}
-            height={480}
-            videoConstraints={{
-              facingMode: "environment",
-              advanced: [{ zoom: 3 }]
+      {/* Camera Panel */}
+      <Card className="mt-4 p-2 bg-white shadow rounded-xl mx-auto max-w-sm">
+        <div className="relative overflow-hidden rounded-lg border border-gray-300">
+          <div
+            style={{
+              transform: 'scale(1.4)',
+              transformOrigin: 'center center',
+              width: '100%',
+              height: '300px',
+              overflow: 'hidden',
             }}
-          />
+          >
+            <Webcam
+              ref={webcamRef}
+              width={300}
+              height={300}
+              videoConstraints={{
+                facingMode: "environment",
+                advanced: [{ zoom: 3 }]
+              }}
+            />
+          </div>
         </div>
-      </div>
+        <p className="text-center text-xs text-gray-500 mt-1">Camera panel (3× zoom)</p>
+      </Card>
 
-      <Card className="mt-4 p-4 flex gap-2 items-center justify-center">
+      {/* Manual Entry + Voice */}
+      <Card className="mt-4 p-4 flex flex-col items-center space-y-2">
         <Input
           label="Manual Barcode"
           placeholder="Enter or speak barcode"
           value={manualBarcode}
           onChange={(e) => setManualBarcode(e.target.value)}
-          className="flex-1"
+          className="w-full"
         />
-        <Button onClick={() => handleManualEntry(manualBarcode)}>➕</Button>
-        <Button onClick={startListening}>🎙️</Button>
+        <div className="flex gap-2">
+          <Button onClick={() => handleManualEntry(manualBarcode)}>➕</Button>
+          <Button onClick={startListening}>🎙️</Button>
+        </div>
       </Card>
 
-      <Card className="mt-4 overflow-x-auto">
-        <table className="w-full text-sm text-center">
+      {/* Scanned Items */}
+      <Card className="mt-4 overflow-x-auto text-center p-4">
+        <table className="w-full text-sm">
           <thead>
             <tr>
               <th>SNO</th><th>BARCODE</th><th>QTY</th><th>AMOUNT</th>
@@ -208,6 +221,7 @@ export default function SalesPage() {
         </table>
       </Card>
 
+      {/* Customer Form */}
       <Card className="mt-4 p-4 text-center">
         <p className="font-semibold mb-2">CUSTOMER DETAILS</p>
         <Input
@@ -222,6 +236,7 @@ export default function SalesPage() {
         />
       </Card>
 
+      {/* Submit Button */}
       <div className="mt-6 text-center mb-8">
         <Button
           onClick={submitSale}
