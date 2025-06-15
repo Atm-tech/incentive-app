@@ -109,66 +109,55 @@ export default function SalesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-pink-100 p-3 text-sm">
-      <header className="bg-red-600 text-white flex justify-between items-center px-4 py-3 font-semibold text-lg rounded">
-        <div onClick={() => navigate(-1)} className="w-8 h-8 bg-white rounded cursor-pointer" />
+    <div className="min-h-screen bg-pink-100 flex flex-col items-center p-4">
+      <header className="bg-red-600 text-white text-center w-full py-3 font-semibold text-lg rounded">
         SALES PAGE
-        <div className="w-8 h-8" />
       </header>
 
-      <div className="mt-4 flex justify-center">
-        <div
-          className="relative w-full max-w-xs h-48 sm:h-56 bg-gray-200 overflow-hidden rounded"
-        >
-          <Webcam
-            ref={webcamRef}
-            videoConstraints={{
-              facingMode: 'environment',
-              width: 640,
-              height: 480,
-              advanced: [{ zoom: 3 }]
-            }}
-            style={{
-              width: '640px',
-              height: '480px',
-              transform: 'scale(1.5)',
-              transformOrigin: 'center center',
-              position: 'absolute',
-              top: '-120px',
-              left: '-160px'
-            }}
-          />
-        </div>
+      {/* Camera Panel */}
+      <div className="mt-4 bg-gray-200 rounded overflow-hidden w-full max-w-sm h-64 flex items-center justify-center">
+        <Webcam
+          ref={webcamRef}
+          className="rounded"
+          videoConstraints={{
+            facingMode: 'environment',
+            width: 640,
+            height: 480,
+            advanced: [{ zoom: 3 }]
+          }}
+          style={{
+            width: '100%',
+            height: 'auto',
+            transform: 'scale(1.5)',
+            transformOrigin: 'center center'
+          }}
+        />
       </div>
 
-      <Card className="mt-4 p-3 flex gap-2 items-center flex-wrap">
+      {/* Barcode Inputs */}
+      <Card className="mt-4 p-3 w-full max-w-sm">
         <Input
           label="Manual Barcode"
           placeholder="Enter or speak barcode"
           value={manualBarcode}
           onChange={(e) => setManualBarcode(e.target.value)}
-          className="flex-grow w-full"
         />
-        <div className="flex gap-2 w-full justify-center">
+        <div className="flex justify-center gap-2 mt-2">
           <Button onClick={() => handleManualEntry(manualBarcode)}>➕</Button>
           <Button onClick={startListening}>🎙️</Button>
         </div>
       </Card>
 
+      {/* Items Table */}
       {items.length > 0 && (
-        <Card className="mt-4 overflow-x-auto p-3">
+        <Card className="mt-4 p-3 w-full max-w-sm">
           <table className="w-full text-center text-sm">
-            <thead className="border-b font-bold">
-              <tr>
-                <th>SNO</th>
-                <th>BARCODE</th>
-                <th>QTY</th>
-                <th>AMOUNT</th>
-              </tr>
+            <thead>
+              <tr><th>SNO</th><th>BARCODE</th><th>QTY</th><th>AMOUNT</th></tr>
             </thead>
             <tbody>
               {items.map((it, i) => (
-                <tr key={i} className="border-b">
+                <tr key={i}>
                   <td>{i + 1}</td>
                   <td>{it.barcode}</td>
                   <td>
@@ -176,14 +165,14 @@ export default function SalesPage() {
                       type="number"
                       value={it.qty}
                       onChange={(e) => updateQty(i, +e.target.value)}
-                      className="border w-12 px-1 text-center"
+                      className="w-12 border px-1 text-center"
                     />
                   </td>
                   <td>{(it.price * it.qty * (it.traitPercentage / 100)).toFixed(2)}</td>
                 </tr>
               ))}
               <tr className="font-bold">
-                <td colSpan="3" className="text-right pr-2">TOTAL</td>
+                <td colSpan="3" className="text-right">TOTAL</td>
                 <td>{total.toFixed(2)}</td>
               </tr>
             </tbody>
@@ -191,8 +180,9 @@ export default function SalesPage() {
         </Card>
       )}
 
-      <Card className="mt-4 p-4">
-        <p className="font-semibold mb-2 text-center">CUSTOMER DETAILS</p>
+      {/* Customer Input */}
+      <Card className="mt-4 p-4 w-full max-w-sm">
+        <p className="font-semibold text-center mb-2">CUSTOMER DETAILS</p>
         <Input
           label="Name"
           value={customer.name}
@@ -205,11 +195,12 @@ export default function SalesPage() {
         />
       </Card>
 
-      <div className="mt-6 text-center mb-10">
+      {/* Submit Button */}
+      <div className="mt-6 mb-10 w-full max-w-sm">
         <button
           onClick={submitSale}
           disabled={!items.length || !customer.name || !customer.phone}
-          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full w-full max-w-xs"
+          className="bg-red-600 text-white w-full py-3 rounded-full font-bold disabled:bg-gray-300"
         >
           SUBMIT
         </button>
