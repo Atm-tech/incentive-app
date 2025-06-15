@@ -68,8 +68,7 @@ export default function SalesPage() {
     reader.decodeFromVideoDevice(null, webcamRef.current.video, (result, err) => {
       if (result) {
         handleScan(result.getText());
-        setScanning(false);
-        reader.reset();
+        
         setTimeout(() => setScanning(true), 1500);
       }
     });
