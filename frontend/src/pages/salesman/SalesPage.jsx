@@ -24,7 +24,7 @@ export default function SalesPage() {
     setScanning(false);
 
     try {
-      const { price, traitPercentage } = await api.get(`/products/${code}`).then((r) => r.data);
+      const { price, traitPercentage } = await api.get(`/api/products/api/products/${code}`).then((r) => r.data);
 
       setItems((prev) => {
         const existing = prev.find((i) => i.barcode === code);
@@ -66,7 +66,7 @@ export default function SalesPage() {
     if (!code) return;
 
     try {
-      const { price, traitPercentage } = await api.get(`/products/${code}`).then((r) => r.data);
+      const { price, traitPercentage } = await api.get(`/api/products/api/products/${code}`).then((r) => r.data);
 
       setItems((prev) => {
         const existing = prev.find((i) => i.barcode === code);
