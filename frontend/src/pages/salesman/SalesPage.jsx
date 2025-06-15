@@ -15,12 +15,12 @@ export default function SalesPage() {
   // Validate JWT on load
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("access_token");
+      const raw = localStorage.getItem("token_token");
       if (!raw) throw new Error("No token");
 
       jwtDecode(raw); // Just check validity
     } catch {
-      localStorage.removeItem("access_token");
+      localStorage.removeItem("token_token");
       navigate('/login');
     }
   }, [navigate]);
@@ -30,7 +30,7 @@ export default function SalesPage() {
 
     try {
       const { price, traitPercentage } = await api
-        .get(`/api/products/${code}`)
+        .get(`/api/products/api/products/${code}`)
         .then((r) => r.data);
 
       setItems((prev) => {
@@ -61,7 +61,7 @@ export default function SalesPage() {
 
   const submitSale = async () => {
     try {
-      const raw = localStorage.getItem("access_token");
+      const raw = localStorage.getItem("token_token");
       const decoded = jwtDecode(raw);
       const salesman_id = decoded.id;
 
