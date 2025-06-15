@@ -15,12 +15,12 @@ export default function SalesPage() {
   // Validate JWT on load
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("token_token");
+      const raw = localStorage.getItem("token");
       if (!raw) throw new Error("No token");
 
       jwtDecode(raw); // Just check validity
     } catch {
-      localStorage.removeItem("token_token");
+      localStorage.removeItem("token");
       navigate('/login');
     }
   }, [navigate]);
@@ -61,7 +61,7 @@ export default function SalesPage() {
 
   const submitSale = async () => {
     try {
-      const raw = localStorage.getItem("token_token");
+      const raw = localStorage.getItem("token");
       const decoded = jwtDecode(raw);
       const salesman_id = decoded.id;
 
