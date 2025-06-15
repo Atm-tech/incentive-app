@@ -19,17 +19,12 @@ export default function SalesPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Ensure token exists or redirect
     const token = localStorage.getItem("access_token");
-    if (!token) {
-      navigate('/login');
-      return;
-    }
+    if (!token) return navigate('/login');
 
     try {
-      jwtDecode(token); // Just to validate
-    } catch (err) {
-      console.error("Invalid token");
+      jwtDecode(token);
+    } catch {
       localStorage.removeItem("access_token");
       navigate('/login');
     }
@@ -40,7 +35,9 @@ export default function SalesPage() {
     setScanning(false);
 
     try {
-      const { price, traitPercentage } = await api.get(`/api/products/api/products/${code}`).then((r) => r.data);
+      const { price, traitPercentage } = await api
+        .get(`/api/products/api/products/${code}`)
+        .then((r) => r.data);
 
       setItems((prev) => {
         const existing = prev.find((i) => i.barcode === code);
@@ -48,11 +45,10 @@ export default function SalesPage() {
           return prev.map((i) =>
             i.barcode === code ? { ...i, qty: i.qty + 1 } : i
           );
-        } else {
-          return [...prev, { barcode: code, qty: 1, price, traitPercentage }];
         }
+        return [...prev, { barcode: code, qty: 1, price, traitPercentage }];
       });
-    } catch (e) {
+    } catch {
       console.error("Product not found");
     } finally {
       setTimeout(() => setScanning(true), 1500);
@@ -68,20 +64,19 @@ export default function SalesPage() {
     reader.decodeFromVideoDevice(null, webcamRef.current.video, (result, err) => {
       if (result) {
         handleScan(result.getText());
-        y
-        setTimeout(() => setScanning(true), 1500);
       }
     });
 
     return () => reader.reset();
-    
   }, [scanning]);
 
   const handleManualEntry = async (code) => {
     if (!code) return;
 
     try {
-      const { price, traitPercentage } = await api.get(`/api/products/api/products/${code}`).then((r) => r.data);
+      const { price, traitPercentage } = await api
+        .get(`/api/products/api/products/${code}`)
+        .then((r) => r.data);
 
       setItems((prev) => {
         const existing = prev.find((i) => i.barcode === code);
@@ -89,12 +84,11 @@ export default function SalesPage() {
           return prev.map((i) =>
             i.barcode === code ? { ...i, qty: i.qty + 1 } : i
           );
-        } else {
-          return [...prev, { barcode: code, qty: 1, price, traitPercentage }];
         }
+        return [...prev, { barcode: code, qty: 1, price, traitPercentage }];
       });
       setManualBarcode('');
-    } catch (e) {
+    } catch {
       alert("Product not found");
     }
   };
