@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Webcam from 'react-webcam';
-import jwtDecode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 import { BrowserMultiFormatReader } from '@zxing/browser';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
