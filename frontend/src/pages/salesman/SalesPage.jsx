@@ -6,26 +6,31 @@ import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import api from '../../lib/api';
+import beepAudio from '../../assets/beep.mp3';
 
 export default function SalesPage() {
   const webcamRef = useRef(null);
   const codeReader = useRef(null);
+  const beepSound = useRef(null);
   const recognitionRef = useRef(null);
+  const navigate = useNavigate();
 
   const [scanning, setScanning] = useState(true);
   const [items, setItems] = useState([]);
   const [customer, setCustomer] = useState({ name: '', phone: '' });
   const [manualBarcode, setManualBarcode] = useState('');
-  const navigate = useNavigate();
 
-  // Start scanner
+  useEffect(() => {
+    beepSound.current = new Audio(beepAudio);
+  }, []);
+
   useEffect(() => {
     if (!webcamRef.current || !scanning) return;
 
     const reader = new BrowserMultiFormatReader();
     codeReader.current = reader;
 
-    reader.decodeFromVideoDevice(null, webcamRef.current.video, (result, err) => {
+    reader.decodeFromVideoDevice(null, webcamRef.current.video, (result) => {
       if (result) {
         handleScan(result.getText());
         reader.reset();
@@ -33,18 +38,18 @@ export default function SalesPage() {
       }
     });
 
-    return () => {
-      reader.reset();
-    };
+    return () => reader.reset();
   }, [scanning]);
 
   const handleScan = async (code) => {
     if (!code) return;
     setScanning(false);
+    if (beepSound.current) beepSound.current.play();
+
     try {
-      const { price, traitPercentage } = await api.get(`/products/${code}`).then((r) => r.data);
-      setItems((prev) => [...prev, { barcode: code, qty: 1, price, traitPercentage }]);
-    } catch (e) {
+      const { price, traitPercentage } = await api.get(`/products/${code}`).then(r => r.data);
+      setItems(prev => [...prev, { barcode: code, qty: 1, price, traitPercentage }]);
+    } catch {
       console.error("Product not found");
     } finally {
       setTimeout(() => setScanning(true), 1500);
@@ -53,11 +58,13 @@ export default function SalesPage() {
 
   const handleManualEntry = async (code) => {
     if (!code) return;
+    if (beepSound.current) beepSound.current.play();
+
     try {
-      const { price, traitPercentage } = await api.get(`/products/${code}`).then((r) => r.data);
-      setItems((prev) => [...prev, { barcode: code, qty: 1, price, traitPercentage }]);
+      const { price, traitPercentage } = await api.get(`/products/${code}`).then(r => r.data);
+      setItems(prev => [...prev, { barcode: code, qty: 1, price, traitPercentage }]);
       setManualBarcode('');
-    } catch (e) {
+    } catch {
       alert("Product not found");
     }
   };
@@ -77,23 +84,16 @@ export default function SalesPage() {
       handleManualEntry(numeric);
     };
 
-    recognition.onerror = (e) => {
-      alert("Voice input failed");
-    };
-
+    recognition.onerror = () => alert("Voice input failed");
     recognition.start();
     recognitionRef.current = recognition;
   };
 
-  const updateQty = (idx, qty) => {
-    setItems(items.map((it, i) => (i === idx ? { ...it, qty } : it)));
+  const updateQty = (i, qty) => {
+    setItems(items.map((it, idx) => (i === idx ? { ...it, qty } : it)));
   };
 
-  const total = items.reduce(
-    (sum, { price, qty, traitPercentage }) =>
-      sum + price * qty * (traitPercentage / 100),
-    0
-  );
+  const total = items.reduce((sum, it) => sum + it.price * it.qty * (it.traitPercentage / 100), 0);
 
   const submitSale = async () => {
     await api.post('/api/sales/submit', {
@@ -101,92 +101,98 @@ export default function SalesPage() {
         barcode,
         qty,
         price,
-        traitPercentage,
+        traitPercentage
       })),
-      customer,
+      customer
     });
     navigate('/salesman');
   };
 
   return (
-    <div className="p-4 bg-pink-100 min-h-screen">
-      {/* HEADER */}
-      <header className="bg-red-600 p-3 flex items-center">
-        <div className="w-10 h-10 bg-white rounded cursor-pointer mr-2" onClick={() => navigate(-1)} />
-        <h1 className="text-white text-lg font-semibold">SALES PAGE</h1>
+    <div className="min-h-screen bg-pink-100 p-3 text-sm">
+      <header className="bg-red-600 text-white flex justify-between items-center px-4 py-3 font-semibold text-lg rounded">
+        <div onClick={() => navigate(-1)} className="w-8 h-8 bg-white rounded cursor-pointer" />
+        SALES PAGE
+        <div className="w-8 h-8" />
       </header>
 
-      {/* CAMERA BLOCK */}
       <div className="mt-4 flex justify-center">
         <div
-          style={{
-            transform: 'scale(1.5)',
-            transformOrigin: 'center center',
-            overflow: 'hidden',
-            width: '640px',
-            height: '480px'
-          }}
-          className="bg-gray-200"
+          className="relative w-full max-w-xs h-48 sm:h-56 bg-gray-200 overflow-hidden rounded"
         >
           <Webcam
             ref={webcamRef}
-            width={640}
-            height={480}
             videoConstraints={{
               facingMode: 'environment',
+              width: 640,
+              height: 480,
               advanced: [{ zoom: 3 }]
+            }}
+            style={{
+              width: '640px',
+              height: '480px',
+              transform: 'scale(1.5)',
+              transformOrigin: 'center center',
+              position: 'absolute',
+              top: '-120px',
+              left: '-160px'
             }}
           />
         </div>
       </div>
 
-      {/* MANUAL ENTRY */}
-      <div className="mt-4 px-4 flex items-center gap-2">
+      <Card className="mt-4 p-3 flex gap-2 items-center flex-wrap">
         <Input
+          label="Manual Barcode"
+          placeholder="Enter or speak barcode"
           value={manualBarcode}
           onChange={(e) => setManualBarcode(e.target.value)}
-          placeholder="Enter or speak barcode"
-          className="flex-1"
+          className="flex-grow w-full"
         />
-        <Button onClick={() => handleManualEntry(manualBarcode)}>➕</Button>
-        <Button onClick={startListening}>🎙️</Button>
-      </div>
+        <div className="flex gap-2 w-full justify-center">
+          <Button onClick={() => handleManualEntry(manualBarcode)}>➕</Button>
+          <Button onClick={startListening}>🎙️</Button>
+        </div>
+      </Card>
 
-      {/* ITEM TABLE */}
-      <div className="mt-4 overflow-x-auto bg-white rounded p-2">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left border-b">
-              <th>SNO</th><th>BARCODE</th><th>QTY</th><th>AMOUNT</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((it, i) => (
-              <tr key={i} className="border-b">
-                <td>{i + 1}</td>
-                <td>{it.barcode}</td>
-                <td>
-                  <Input
-                    type="number"
-                    value={it.qty}
-                    onChange={(e) => updateQty(i, +e.target.value)}
-                    className="w-16"
-                  />
-                </td>
-                <td>{(it.price * it.qty * (it.traitPercentage / 100)).toFixed(2)}</td>
+      {items.length > 0 && (
+        <Card className="mt-4 overflow-x-auto p-3">
+          <table className="w-full text-center text-sm">
+            <thead className="border-b font-bold">
+              <tr>
+                <th>SNO</th>
+                <th>BARCODE</th>
+                <th>QTY</th>
+                <th>AMOUNT</th>
               </tr>
-            ))}
-            <tr>
-              <td colSpan="3" className="text-right font-bold">TOTAL</td>
-              <td className="font-bold">{total.toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {items.map((it, i) => (
+                <tr key={i} className="border-b">
+                  <td>{i + 1}</td>
+                  <td>{it.barcode}</td>
+                  <td>
+                    <input
+                      type="number"
+                      value={it.qty}
+                      onChange={(e) => updateQty(i, +e.target.value)}
+                      className="border w-12 px-1 text-center"
+                    />
+                  </td>
+                  <td>{(it.price * it.qty * (it.traitPercentage / 100)).toFixed(2)}</td>
+                </tr>
+              ))}
+              <tr className="font-bold">
+                <td colSpan="3" className="text-right pr-2">TOTAL</td>
+                <td>{total.toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </Card>
+      )}
 
-      {/* CUSTOMER DETAILS */}
-      <div className="mt-6 bg-white p-4 rounded">
-        <p className="font-semibold mb-2">Customer Details</p>
+      <Card className="mt-4 p-4">
+        <p className="font-semibold mb-2 text-center">CUSTOMER DETAILS</p>
         <Input
           label="Name"
           value={customer.name}
@@ -197,17 +203,16 @@ export default function SalesPage() {
           value={customer.phone}
           onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
         />
-      </div>
+      </Card>
 
-      {/* SUBMIT BUTTON */}
-      <div className="mt-6 text-center mb-8">
-        <Button
-          className="w-full bg-red-600 text-white text-lg py-2"
+      <div className="mt-6 text-center mb-10">
+        <button
           onClick={submitSale}
           disabled={!items.length || !customer.name || !customer.phone}
+          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full w-full max-w-xs"
         >
           SUBMIT
-        </Button>
+        </button>
       </div>
     </div>
   );
