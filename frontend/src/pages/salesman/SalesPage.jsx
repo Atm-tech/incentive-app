@@ -7,6 +7,8 @@ import Input from '../../components/ui/Input';
 import Header from '../../components/ui/Header';
 import api from '../../lib/api';
 import logo from "../../assets/logo.png";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function SalesPage() {
   const [items, setItems] = useState([]);
@@ -44,7 +46,7 @@ export default function SalesPage() {
 
       setManualBarcode('');
     } catch {
-      alert("Product not found");
+      toast.error("Product not found");
     }
   };
 
@@ -59,6 +61,15 @@ export default function SalesPage() {
   );
 
   const submitSale = async () => {
+    if (!items.length) {
+      toast.warn("Please add a barcode first.");
+      return;
+    }
+    if (!customer.name || !customer.phone) {
+      toast.warn("Please fill in customer details.");
+      return;
+    }
+
     try {
       const raw = localStorage.getItem("token");
       const decoded = jwtDecode(raw);
@@ -71,29 +82,30 @@ export default function SalesPage() {
         salesman_id
       });
 
-      alert("Sale submitted!");
+      toast.success("Sale submitted!");
       navigate('/salesman');
     } catch (error) {
-      alert("Failed to submit sale");
+      toast.error("Failed to submit sale");
       console.error(error);
     }
   };
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#fff", fontFamily: "Segoe UI, sans-serif" }}>
-          
-          {/* ✅ Full-width Red Header */}
-          <div style={{
-            width: "100vw",
-            background: "#B71C1C",
-            padding: "12px 0",
-            marginLeft: "-8px",
-            marginRight: "-8px",
-            textAlign: "center",
-            boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
-          }}>
-            <img src={logo} alt="Logo" style={{ height: "40px" }} />
-          </div>
+      <ToastContainer position="top-center" />
+      
+      {/* ✅ Full-width Red Header */}
+      <div style={{
+        width: "100vw",
+        background: "#B71C1C",
+        padding: "12px 0",
+        marginLeft: "-8px",
+        marginRight: "-8px",
+        textAlign: "center",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+      }}>
+        <img src={logo} alt="Logo" style={{ height: "40px" }} />
+      </div>
 
       {/* Back Button */}
       <div style={{ padding: "20px 20px 0" }}>
@@ -188,7 +200,7 @@ export default function SalesPage() {
       <div style={{ textAlign: "center", marginTop: "30px" }}>
         <Button
           onClick={submitSale}
-          disabled={!items.length || !customer.name || !customer.phone}
+          disabled={!customer.name || !customer.phone}
           className="bg-red-600 text-white py-3 px-10 rounded-full text-lg"
         >
           SUBMIT
