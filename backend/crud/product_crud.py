@@ -50,8 +50,7 @@ def upsert_product(db: Session, payload: ProductSubmit) -> Product:
 
 def upsert_products_from_file(db: Session, file_path: str) -> dict:
     """
-    Insert or update multiple products from an Excel or CSV file.
-    Auto-creates Verticles if missing.
+    Insert products from Excel/CSV. Skips duplicates. Logs failures.
     """
     try:
         if file_path.endswith((".xlsx", ".xls")):
@@ -65,38 +64,48 @@ def upsert_products_from_file(db: Session, file_path: str) -> dict:
         if not required_columns.issubset(set(df.columns)):
             raise ValueError(f"Missing columns: {required_columns - set(df.columns)}")
 
-        upserted_count = 0
+        inserted = 0
+        skipped = []
 
-        for _, row in df.iterrows():
+        for idx, row in df.iterrows():
             barcode = str(row.get("barcode")).strip()
             if not barcode or pd.isna(barcode):
+                skipped.append({"row": idx + 2, "reason": "Missing barcode"})
                 continue
 
             verticle = str(row.get("verticle", "")).strip().lower()
             trait = str(row.get("trait", "")).strip()
-            rsp = float(row.get("rsp", 0.0)) if not pd.isna(row.get("rsp")) else 0.0
+            try:
+                rsp = float(row.get("rsp", 0.0))
+            except:
+                skipped.append({"row": idx + 2, "barcode": barcode, "reason": "Invalid RSP"})
+                continue
 
             get_or_create_verticle(db, verticle)
 
-            existing = db.query(Product).filter_by(barcode=barcode).first()
-            if existing:
-                existing.verticle = verticle
-                existing.trait = trait
-                existing.rsp = rsp
-            else:
-                new_product = Product(
+            # skip duplicate barcodes
+            if db.query(Product).filter_by(barcode=barcode).first():
+                skipped.append({"row": idx + 2, "barcode": barcode, "reason": "Duplicate barcode"})
+                continue
+
+            try:
+                db.add(Product(
                     barcode=barcode,
                     verticle=verticle,
                     trait=trait,
                     rsp=rsp
-                )
-                db.add(new_product)
-
-            upserted_count += 1
+                ))
+                inserted += 1
+            except Exception as e:
+                skipped.append({"row": idx + 2, "barcode": barcode, "reason": str(e)})
 
         db.commit()
-        return {"upserted": upserted_count}
+        return {
+            "inserted": inserted,
+            "skipped": skipped
+        }
 
     except Exception as e:
         db.rollback()
         raise e
+
