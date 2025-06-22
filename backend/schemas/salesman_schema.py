@@ -27,3 +27,17 @@ class SalesmanOut(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class SalesmanSummaryOut(BaseModel):
+    id: int
+    name: str
+    mobile: str
+    outlet: str
+    total_sales: int
+    total_incentive: float
+    total_claimed: float
+    wallet_balance: float
+
+    class Config:
+        orm_mode = True

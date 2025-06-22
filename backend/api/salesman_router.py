@@ -1,14 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from db.database import get_db
 from crud.salesman_crud import get_all_approved_salesmen, delete_salesman
-from schemas.salesman_schema import SalesmanOut
+from schemas.salesman_schema import SalesmanOut, SalesmanSummaryOut
 from utils.security import get_current_user_role
 from models.sale import Sale
 from models.incentive import Incentive
-
 from utils.security import get_current_salesman
+from models.claim import Claim
+from models.salesman import Salesman
+from sqlalchemy import func, and_
+
 router = APIRouter()
 
 @router.get("/salesmen", response_model=list[SalesmanOut])
@@ -79,3 +82,59 @@ def get_salesman_stats(db: Session = Depends(get_db), current_user=Depends(get_c
         "wallet_balance": wallet_balance
     }
 
+@router.get("/summary", response_model=list[SalesmanSummaryOut])
+def get_salesman_summaries(
+    period: str = Query("total", enum=["today", "month", "total"]),
+    db: Session = Depends(get_db)
+):
+    salesmen = db.query(Salesman).filter(Salesman.is_approved == True).all()
+    summaries = []
+
+    # Calculate date filters
+    now = datetime.now()
+    if period == "today":
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_date = now
+    elif period == "month":
+        start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        next_month = start_date.replace(day=28) + timedelta(days=4)
+        end_date = next_month.replace(day=1) - timedelta(seconds=1)
+    else:
+        start_date = None
+        end_date = None
+
+    for s in salesmen:
+        # --- Sales Total (amount)
+        sale_query = db.query(func.sum(Sale.amount)).filter(Sale.salesman_id == s.id)
+        if start_date:
+            sale_query = sale_query.filter(Sale.timestamp >= start_date)
+        if end_date:
+            sale_query = sale_query.filter(Sale.timestamp <= end_date)
+        total_sales = sale_query.scalar() or 0
+
+        # --- Incentive
+        incentive_query = db.query(func.sum(Incentive.amount)).filter(Incentive.salesman_id == s.id)
+        if start_date:
+            incentive_query = incentive_query.filter(Incentive.timestamp >= start_date)
+        if end_date:
+            incentive_query = incentive_query.filter(Incentive.timestamp <= end_date)
+        total_incentive = incentive_query.scalar() or 0.0
+
+        # --- Claimed stays all-time
+        total_claimed = db.query(func.sum(Claim.amount)).filter(
+            Claim.salesman_id == s.id,
+            Claim.status.in_(["approved", "paid"])
+        ).scalar() or 0.0
+
+        summaries.append(SalesmanSummaryOut(
+            id=s.id,
+            name=s.name,
+            mobile=s.mobile,
+            outlet=s.outlet,
+            total_sales=total_sales,
+            total_incentive=total_incentive,
+            total_claimed=total_claimed,
+            wallet_balance=s.wallet_balance or 0.0
+        ))
+
+    return summaries

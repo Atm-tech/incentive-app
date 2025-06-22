@@ -3,21 +3,29 @@ import axios from "axios";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { toast } from "react-toastify";
+import API_BASE_URL from "../../config";
+
+const tabs = [
+  { label: "Today", value: "today" },
+  { label: "This Month", value: "month" },
+  { label: "Total", value: "total" }
+];
 
 const UserManager = () => {
   const [salesmen, setSalesmen] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("total");
 
-  const fetchSalesmen = async () => {
+  const fetchSalesmen = async (period = "total") => {
+    setLoading(true);
     try {
-      const response = await axios.get("/salesmen");
+      const response = await axios.get(`${API_BASE_URL}/api/salesman/summary?period=${period}`);
       const data = Array.isArray(response.data) ? response.data : [];
       setSalesmen(data);
-      console.log("Fetched salesmen:", data); // 🔍 optional debug log
     } catch (error) {
-      console.error("Failed to fetch salesmen:", error);
+      console.error("Failed to fetch salesmen summaries:", error);
       toast.error("Failed to fetch salesmen");
-      setSalesmen([]); // Fallback to empty array to prevent .map errors
+      setSalesmen([]);
     } finally {
       setLoading(false);
     }
@@ -26,7 +34,7 @@ const UserManager = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to remove this salesman?")) return;
     try {
-      await axios.delete(`/salesmen/${id}`);
+      await axios.delete(`${API_BASE_URL}/api/salesman/${id}`);
       toast.success("Salesman removed");
       setSalesmen((prev) => prev.filter((s) => s.id !== id));
     } catch (error) {
@@ -35,37 +43,101 @@ const UserManager = () => {
     }
   };
 
-  useEffect(() => {
-    fetchSalesmen();
-  }, []);
+  const downloadCSV = () => {
+    const header = [
+      "ID", "Name", "Mobile", "Outlet", "Sales (₹)", "Incentive", "Claimed", "Wallet"
+    ];
+    const rows = salesmen.map(s =>
+      [
+        s.id,
+        s.name,
+        s.mobile,
+        s.outlet,
+        s.total_sales,
+        s.total_incentive,
+        s.total_claimed,
+        s.wallet_balance
+      ].join(",")
+    );
+    const csvContent = [header.join(","), ...rows].join("\n");
 
-  if (loading) return <div>Loading...</div>;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", "salesmen_summary.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  useEffect(() => {
+    fetchSalesmen(activeTab);
+  }, [activeTab]);
 
   return (
-    <Card className="p-4">
-      <h2 className="text-xl font-bold mb-4">Approved Salesmen</h2>
-      <div className="grid gap-4">
-        {salesmen.length === 0 ? (
-          <div>No approved salesmen found.</div>
-        ) : (
-          salesmen.map((salesman) => (
-            <div
-              key={salesman.id}
-              className="flex items-center justify-between border p-2 rounded"
-            >
-              <div>
-                <div className="font-semibold">{salesman.name}</div>
-                <div className="text-sm text-gray-600">
-                  {salesman.mobile} — {salesman.outlet}
-                </div>
-              </div>
-              <Button variant="destructive" onClick={() => handleDelete(salesman.id)}>
-                Remove
-              </Button>
-            </div>
-          ))
-        )}
+    <Card className="p-4 overflow-auto">
+      <h2 className="text-xl font-bold mb-2">Salesmen Summary</h2>
+
+      {/* Tabs */}
+      <div className="flex gap-4 mb-4">
+        {tabs.map(tab => (
+          <button
+            key={tab.value}
+            onClick={() => setActiveTab(tab.value)}
+            className={`px-4 py-1 rounded-full border ${
+              activeTab === tab.value
+                ? "bg-red-600 text-white border-red-600"
+                : "border-gray-300 text-gray-600 hover:bg-gray-100"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+        <div className="ml-auto">
+          <Button variant="destructive" onClick={downloadCSV}>
+            Download CSV
+          </Button>
+        </div>
       </div>
+
+      {loading ? (
+        <div>Loading...</div>
+      ) : salesmen.length === 0 ? (
+        <div>No salesmen found.</div>
+      ) : (
+        <table className="min-w-full border text-sm">
+          <thead className="bg-gray-100 text-left">
+            <tr>
+              <th className="p-2">Name</th>
+              <th className="p-2">Mobile</th>
+              <th className="p-2">Outlet</th>
+              <th className="p-2">Sales (₹)</th>
+              <th className="p-2">Incentive</th>
+              <th className="p-2">Claimed</th>
+              <th className="p-2">Wallet</th>
+              <th className="p-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {salesmen.map((s) => (
+              <tr key={s.id} className="border-t">
+                <td className="p-2 font-medium">{s.name}</td>
+                <td className="p-2">{s.mobile}</td>
+                <td className="p-2">{s.outlet}</td>
+                <td className="p-2">₹{s.total_sales}</td>
+                <td className="p-2">₹{s.total_incentive}</td>
+                <td className="p-2">₹{s.total_claimed}</td>
+                <td className="p-2">₹{s.wallet_balance}</td>
+                <td className="p-2">
+                  <Button variant="destructive" onClick={() => handleDelete(s.id)}>
+                    Remove
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </Card>
   );
 };
