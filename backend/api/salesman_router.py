@@ -23,7 +23,7 @@ def list_approved_salesmen(
         raise HTTPException(status_code=403, detail="Admin access only")
     return get_all_approved_salesmen(db)
 
-@router.delete("/salesmen/{salesman_id}")
+@router.delete("/{salesman_id}")
 def remove_salesman(
     salesman_id: int,
     db: Session = Depends(get_db),
