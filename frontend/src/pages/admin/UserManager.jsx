@@ -248,7 +248,7 @@ const UserManager = () => {
                   <td className="p-2">{s.mobile}</td>
                   <td className="p-2">{s.outlet}</td>
                   <td className="p-2">₹{s.total_sales}</td>
-                  <td className="p-2">₹{s.total_incentive}</td>
+                  <td className="p-2">₹{s.total_incentive ? parseFloat(s.total_incentive).toFixed(2) : "0.00"}</td>
                   <td className="p-2">₹{s.total_claimed}</td>
                   <td className="p-2">₹{s.wallet_balance}</td>
                   <td className="p-2">
