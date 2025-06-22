@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 class SalesmanCreate(BaseModel):
     name: str
@@ -33,8 +34,8 @@ class SalesmanSummaryOut(BaseModel):
     id: int
     name: str
     mobile: str
-    outlet: str
-    total_sales: int
+    outlet: Optional[str]
+    total_sales: float
     total_incentive: float
     total_claimed: float
     wallet_balance: float
