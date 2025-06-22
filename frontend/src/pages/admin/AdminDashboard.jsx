@@ -78,7 +78,7 @@ const AdminDashboard = () => {
         <img src={logo} alt="Logo" style={{ height: "40px" }} />
       </div>
 
-      <div style={{ display: "flex", height: "calc(100vh - 80px)", overflow: "hidden" }}>
+      <div style={{ display: "flex", height: "calc(100vh - 80px)", overflow: "hidden"}}>
         
         {/* Sidebar */}
         <div style={{

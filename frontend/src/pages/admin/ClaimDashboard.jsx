@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import API_BASE_URL from "../../config";
-import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import { toLocalTime } from "../../utils/formatDate";
 
@@ -13,9 +12,8 @@ export default function ClaimDashboard() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [view, setView] = useState("pending");
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(null);
   const [modalData, setModalData] = useState({});
-
   const token = localStorage.getItem("token");
 
   const fetchClaims = async () => {
@@ -35,14 +33,18 @@ export default function ClaimDashboard() {
     fetchClaims();
   }, [view]);
 
-  const handleApprove = async (id) => {
+  const handleAmendRemarks = async (id) => {
+    const newRemarks = amendMap[id];
+    if (!newRemarks?.trim()) return alert("Remarks cannot be empty.");
     try {
-      await axios.post(`${API_BASE_URL}/api/claims/${id}/approve`, {}, {
+      await axios.patch(`${API_BASE_URL}/api/claims/${id}`, {
+        new_remarks: newRemarks,
+      }, {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchClaims();
     } catch {
-      alert("Approval failed");
+      alert("Amendment failed");
     }
   };
 
@@ -58,21 +60,6 @@ export default function ClaimDashboard() {
       fetchClaims();
     } catch {
       alert("Rejection failed");
-    }
-  };
-
-  const handleAmendRemarks = async (id) => {
-    const newRemarks = amendMap[id];
-    if (!newRemarks?.trim()) return alert("Remarks cannot be empty.");
-    try {
-      await axios.patch(`${API_BASE_URL}/api/claims/${id}`, {
-        new_remarks: newRemarks,
-      }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      fetchClaims();
-    } catch {
-      alert("Amendment failed");
     }
   };
 
@@ -123,12 +110,30 @@ export default function ClaimDashboard() {
           {view === "pending" ? "Pending Claims" : "All Claims"}
         </h2>
         <div className="flex gap-2">
-          <Button onClick={() => setView(view === "pending" ? "all" : "pending")}>
+          <button
+            style={{
+              backgroundColor: "#0288d1",
+              color: "white",
+              padding: "6px 12px",
+              borderRadius: "6px",
+              fontWeight: "500"
+            }}
+            onClick={() => setView(view === "pending" ? "all" : "pending")}
+          >
             View {view === "pending" ? "All" : "Pending"}
-          </Button>
-          <Button onClick={downloadCSV} className="bg-blue-600 text-white">
+          </button>
+          <button
+            style={{
+              backgroundColor: "#388e3c",
+              color: "white",
+              padding: "6px 12px",
+              borderRadius: "6px",
+              fontWeight: "500"
+            }}
+            onClick={downloadCSV}
+          >
             ⬇️ Export CSV
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -136,7 +141,17 @@ export default function ClaimDashboard() {
         <Input placeholder="Search by name or ID" value={search} onChange={e => setSearch(e.target.value)} />
         <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
         <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-        <Button onClick={handleFilter}>Filter</Button>
+        <button
+          style={{
+            backgroundColor: "#7b1fa2",
+            color: "#fff",
+            padding: "6px 12px",
+            borderRadius: "6px"
+          }}
+          onClick={handleFilter}
+        >
+          Filter
+        </button>
       </div>
 
       {filteredClaims.length === 0 ? (
@@ -157,100 +172,149 @@ export default function ClaimDashboard() {
             </thead>
             <tbody>
               {filteredClaims.map((claim) => (
-                <tr key={claim.id} className="border-t">
-                  <td className="p-2">{claim.id}</td>
-                  <td className="p-2">{claim.salesman_name || `#${claim.salesman_id}`}</td>
-                  <td className="p-2">₹{claim.amount}</td>
-                  <td className="p-2">
-                    {claim.status === "approved" ? "✅ Approved" :
-                      claim.status === "rejected" ? "❌ Rejected" : "🕓 Pending"}
-                  </td>
-                  <td className="p-2">
-                    {claim.status === "pending" ? (
-                      <div className="flex gap-1 items-center">
-                        <Input
-                          className="w-32"
-                          placeholder="Edit remarks"
-                          value={amendMap[claim.id] || ""}
-                          onChange={(e) =>
-                            setAmendMap({ ...amendMap, [claim.id]: e.target.value })
-                          }
-                        />
-                        <Button className="px-2 py-1 text-xs" onClick={() => handleAmendRemarks(claim.id)}>Save</Button>
-                      </div>
-                    ) : (
-                      claim.remarks || "—"
-                    )}
-                  </td>
-                  <td className="p-2">{toLocalTime(claim.timestamp).toLocaleString()}</td>
-                  <td className="p-2 space-y-1">
-                    {claim.status === "pending" && (
-                      <>
-                        <Button
-                          className="block bg-yellow-600 text-white text-xs w-full"
-                          onClick={() => {
-                            setModalData({
-                              id: claim.id,
-                              amount: claim.amount,
-                              newAmount: claim.amount,
-                              remarks: claim.remarks || ""
-                            });
-                            setShowModal(true);
-                          }}
-                        >
-                          Amend+Approve
-                        </Button>
-                        <Button className="block bg-red-600 text-white text-xs w-full" onClick={() => handleReject(claim.id)}>Reject</Button>
-                      </>
-                    )}
-                  </td>
-                </tr>
+                <>
+                  <tr key={claim.id} className="border-t">
+                    <td className="p-2">{claim.id}</td>
+                    <td className="p-2">{claim.salesman_name || `#${claim.salesman_id}`}</td>
+                    <td className="p-2">₹{claim.amount}</td>
+                    <td className="p-2">
+                      {claim.status === "approved" ? "✅ Approved" :
+                        claim.status === "rejected" ? "❌ Rejected" : "🕓 Pending"}
+                    </td>
+                    <td className="p-2">
+                      {claim.status === "pending" ? (
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            className="w-32"
+                            placeholder="Edit remarks"
+                            value={amendMap[claim.id] || ""}
+                            onChange={(e) =>
+                              setAmendMap({ ...amendMap, [claim.id]: e.target.value })
+                            }
+                          />
+                          <button
+                            style={{
+                              backgroundColor: "#1976d2",
+                              color: "#fff",
+                              padding: "4px 10px",
+                              fontSize: "12px",
+                              borderRadius: "4px"
+                            }}
+                            onClick={() => handleAmendRemarks(claim.id)}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      ) : (
+                        claim.remarks || "—"
+                      )}
+                    </td>
+                    <td className="p-2">{toLocalTime(claim.timestamp).toLocaleString()}</td>
+                    <td className="p-2 space-y-1">
+                      {claim.status === "pending" && (
+                        <>
+                          <button
+                            style={{
+                              backgroundColor: "#f9a825",
+                              color: "#fff",
+                              padding: "6px 10px",
+                              fontSize: "12px",
+                              borderRadius: "4px",
+                              width: "100%"
+                            }}
+                            onClick={() => {
+                              setModalData({
+                                id: claim.id,
+                                amount: claim.amount,
+                                newAmount: claim.amount,
+                                remarks: claim.remarks || ""
+                              });
+                              setShowModal(claim.id);
+                            }}
+                          >
+                            Amend+Approve
+                          </button>
+                          <button
+                            style={{
+                              backgroundColor: "#c62828",
+                              color: "#fff",
+                              padding: "6px 10px",
+                              fontSize: "12px",
+                              borderRadius: "4px",
+                              width: "100%"
+                            }}
+                            onClick={() => handleReject(claim.id)}
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+
+                  {showModal === claim.id && (
+                    <tr key={`${claim.id}-inline`} className="bg-pink-50 border-t">
+                      <td colSpan="7" className="p-4">
+                        <div className="flex flex-col gap-2">
+                          <div className="text-sm font-semibold">Original Amount: ₹{modalData.amount}</div>
+                          <Input
+                            type="number"
+                            placeholder="New Amount"
+                            value={modalData.newAmount}
+                            onChange={(e) => setModalData({ ...modalData, newAmount: e.target.value })}
+                          />
+                          <Input
+                            placeholder="Remarks"
+                            value={modalData.remarks}
+                            onChange={(e) => setModalData({ ...modalData, remarks: e.target.value })}
+                          />
+                          <div className="flex justify-end gap-2">
+                            <button
+                              style={{
+                                backgroundColor: "#e0e0e0",
+                                color: "#333",
+                                padding: "6px 12px",
+                                borderRadius: "4px",
+                                fontSize: "14px"
+                              }}
+                              onClick={() => setShowModal(null)}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              style={{
+                                backgroundColor: "#2e7d32",
+                                color: "#fff",
+                                padding: "6px 12px",
+                                borderRadius: "4px",
+                                fontSize: "14px"
+                              }}
+                              onClick={async () => {
+                                try {
+                                  await axios.patch(`${API_BASE_URL}/api/claims/${modalData.id}/amend-approve`, {
+                                    new_amount: parseFloat(modalData.newAmount),
+                                    new_remarks: modalData.remarks
+                                  }, {
+                                    headers: { Authorization: `Bearer ${token}` }
+                                  });
+                                  setShowModal(null);
+                                  fetchClaims();
+                                } catch {
+                                  alert("Amend+Approve failed.");
+                                }
+                              }}
+                            >
+                              Confirm
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-80">
-            <h3 className="text-lg font-semibold mb-4">Amend and Approve Claim</h3>
-            <p className="text-sm mb-2">Original Amount: ₹{modalData.amount}</p>
-            <Input
-              type="number"
-              placeholder="New Amount"
-              value={modalData.newAmount}
-              onChange={(e) => setModalData({ ...modalData, newAmount: e.target.value })}
-            />
-            <Input
-              placeholder="Remarks"
-              value={modalData.remarks}
-              onChange={(e) => setModalData({ ...modalData, remarks: e.target.value })}
-              className="mt-2"
-            />
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-              <Button
-                onClick={async () => {
-                  try {
-                    await axios.patch(`${API_BASE_URL}/api/claims/${modalData.id}/amend-approve`, {
-                      new_amount: parseFloat(modalData.newAmount),
-                      new_remarks: modalData.remarks
-                    }, {
-                      headers: { Authorization: `Bearer ${token}` }
-                    });
-                    setShowModal(false);
-                    fetchClaims();
-                  } catch {
-                    alert("Amend+Approve failed.");
-                  }
-                }}
-              >
-                Confirm
-              </Button>
-            </div>
-          </div>
         </div>
       )}
     </div>
