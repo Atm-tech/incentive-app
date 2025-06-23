@@ -1,3 +1,4 @@
+// ⬅️ your existing imports
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
@@ -9,7 +10,7 @@ import api from '../../lib/api';
 import logo from "../../assets/logo.png";
 import beepSound from "../../assets/beep.mp3";
 import { ToastContainer, toast } from 'react-toastify';
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, ArrowLeft } from 'lucide-react';
 import 'react-toastify/dist/ReactToastify.css';
 
 export default function SalesPage() {
@@ -240,10 +241,31 @@ export default function SalesPage() {
         marginLeft: "-8px",
         marginRight: "-8px",
         textAlign: "center",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.3)"
+        boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+        position: "relative"
       }}>
+        
         <img src={logo} alt="Logo" style={{ height: "40px" }} />
       </div>
+      {/* ⬅️ Back Button (like ProfilePage) */}
+       <div style={{ padding: "0 20px", marginTop: "20px" }}>
+          <button
+            onClick={() => navigate(-1)}
+              style={{
+              background: "#fff",
+              border: "1px solid #e60000",
+              color: "#e60000",
+              padding: "6px 16px",
+              borderRadius: "999px",
+              fontSize: "14px",
+              fontWeight: "bold",
+              cursor: "pointer"
+           }}
+           >
+             ← Back
+            </button>
+            </div>
+
 
       {/* Scanner */}
       <Card className="p-4 mt-4 mx-4">
@@ -265,7 +287,7 @@ export default function SalesPage() {
         }} />
       </Card>
 
-      {/* Manual Barcode Input */}
+      {/* Manual Input */}
       <Card className="p-4 mt-4 mx-4">
         <h3 className="font-semibold text-center mb-2">Enter Barcode Manually</h3>
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
