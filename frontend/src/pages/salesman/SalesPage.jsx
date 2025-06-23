@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react';
+// same imports
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
-import Header from '../../components/ui/Header';
 import api from '../../lib/api';
 import logo from "../../assets/logo.png";
+import beepSound from "../../assets/beep.mp3";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -14,7 +16,11 @@ export default function SalesPage() {
   const [items, setItems] = useState([]);
   const [customer, setCustomer] = useState({ name: '', phone: '' });
   const [manualBarcode, setManualBarcode] = useState('');
+  const scannerRef = useRef(null);
+  const beepRef = useRef(null);
   const navigate = useNavigate();
+  const lastScanned = useRef("");
+  const lastScannedAt = useRef(0);
 
   useEffect(() => {
     try {
@@ -26,6 +32,88 @@ export default function SalesPage() {
       navigate('/login');
     }
   }, [navigate]);
+
+  useEffect(() => {
+    let html5QrCode;
+    let videoTrack;
+
+    const startScanner = async () => {
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (!devices.length) throw new Error("No camera found");
+        const rearCam = devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
+
+        const constraints = {
+          video: {
+            deviceId: rearCam.id,
+            facingMode: { ideal: "environment" },
+            width: { ideal: 200 },
+            height: { ideal: 50 }
+          }
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoTrack = stream.getVideoTracks()[0];
+
+        const capabilities = videoTrack.getCapabilities();
+        if (capabilities.zoom) {
+          const zoom = Math.min(capabilities.zoom.max, 3);
+          await videoTrack.applyConstraints({ advanced: [{ zoom }] });
+        }
+
+        html5QrCode = new Html5Qrcode("reader", {
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+          ]
+        });
+
+        await html5QrCode.start(
+          { deviceId: { exact: rearCam.id } },
+          {
+            fps: 10,
+            qrbox: { width: 300, height: 50 },
+            videoConstraints: { deviceId: rearCam.id }
+          },
+          async (decodedText) => {
+            const now = Date.now();
+            if (decodedText === lastScanned.current && now - lastScannedAt.current < 2000) return;
+            lastScanned.current = decodedText;
+            lastScannedAt.current = now;
+            try { await beepRef.current?.play(); } catch {}
+            toast.success(`Scanned: ${decodedText}`);
+            await handleManualEntry(decodedText);
+          },
+          () => {}
+        );
+
+        scannerRef.current = html5QrCode;
+      } catch (err) {
+        console.error("Camera init failed:", err);
+        toast.error("Camera access failed. Try HTTPS or allow permissions.");
+      }
+    };
+
+    startScanner();
+
+    return () => {
+      if (scannerRef.current) scannerRef.current.stop().then(() => scannerRef.current.clear());
+      if (videoTrack) videoTrack.stop();
+    };
+  }, []);
+
+  useEffect(() => {
+    const unlockAudio = () => {
+      beepRef.current?.play().catch(() => {});
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("touchstart", unlockAudio);
+    };
+    document.addEventListener("click", unlockAudio);
+    document.addEventListener("touchstart", unlockAudio);
+  }, []);
 
   const handleManualEntry = async (code) => {
     if (!code) return;
@@ -61,14 +149,8 @@ export default function SalesPage() {
   );
 
   const submitSale = async () => {
-    if (!items.length) {
-      toast.warn("Please add a barcode first.");
-      return;
-    }
-    if (!customer.name || !customer.phone) {
-      toast.warn("Please fill in customer details.");
-      return;
-    }
+    if (!items.length) return toast.warn("Please add a barcode first.");
+    if (!customer.name || !customer.phone) return toast.warn("Please fill in customer details.");
 
     try {
       const raw = localStorage.getItem("token");
@@ -93,8 +175,19 @@ export default function SalesPage() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#fff", fontFamily: "Segoe UI, sans-serif" }}>
       <ToastContainer position="top-center" />
-      
-      {/* ✅ Full-width Red Header */}
+      <style>
+        {`
+          #reader video {
+            width: 100% !important;
+            max-height: 120px !important;
+            object-fit: cover;
+            border-radius: 8px;
+          }
+        `}
+      </style>
+      <audio ref={beepRef} src={beepSound} preload="auto" />
+
+      {/* Header */}
       <div style={{
         width: "100vw",
         background: "#B71C1C",
@@ -107,25 +200,19 @@ export default function SalesPage() {
         <img src={logo} alt="Logo" style={{ height: "40px" }} />
       </div>
 
-      {/* Back Button */}
-      <div style={{ padding: "20px 20px 0" }}>
-        <button
-          onClick={() => navigate(-1)}
-          style={{
-            backgroundColor: "#fff",
-            border: "1px solid #e60000",
-            color: "#e60000",
-            padding: "8px 16px",
-            borderRadius: "999px",
-            fontWeight: "bold",
-            cursor: "pointer",
-          }}
-        >
-          ← Back
-        </button>
-      </div>
+      {/* Scanner */}
+      <Card className="p-4 mt-4 mx-4">
+        <h3 className="text-center font-semibold mb-2">Scan Barcode</h3>
+        <div id="reader" style={{
+          width: "100%",
+          border: "1px solid #ccc",
+          borderRadius: "10px",
+          overflow: "hidden",
+          minHeight: "100px"
+        }} />
+      </Card>
 
-      {/* Barcode Input */}
+      {/* Manual Barcode Input - moved BELOW scanner */}
       <Card className="p-4 mt-4 mx-4">
         <h3 className="font-semibold text-center mb-2">Enter Barcode Manually</h3>
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
