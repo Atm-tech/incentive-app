@@ -11,7 +11,10 @@ from utils.security import get_current_salesman
 from models.claim import Claim
 from models.salesman import Salesman
 from sqlalchemy import func, and_
-
+from typing import Optional, List
+import io
+from openpyxl import Workbook
+from fastapi.responses import StreamingResponse
 router = APIRouter()
 
 @router.get("/salesmen", response_model=list[SalesmanOut])
@@ -82,29 +85,34 @@ def get_salesman_stats(db: Session = Depends(get_db), current_user=Depends(get_c
         "wallet_balance": wallet_balance
     }
 
-@router.get("/summary", response_model=list[SalesmanSummaryOut])
+
+@router.get("/summary", response_model=List[SalesmanSummaryOut])
 def get_salesman_summaries(
     period: str = Query("total", enum=["today", "month", "total"]),
+    from_date: Optional[date] = Query(None, alias="from"),
+    to_date: Optional[date] = Query(None, alias="to"),
     db: Session = Depends(get_db)
 ):
     salesmen = db.query(Salesman).filter(Salesman.is_approved == True).all()
     summaries = []
 
-    # Calculate date filters
     now = datetime.now()
-    if period == "today":
+
+    # Calculate start_date and end_date
+    start_date, end_date = None, None
+    if from_date and to_date:
+        start_date = datetime.combine(from_date, datetime.min.time())
+        end_date = datetime.combine(to_date, datetime.max.time())
+    elif period == "today":
         start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
         end_date = now
     elif period == "month":
         start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         next_month = start_date.replace(day=28) + timedelta(days=4)
         end_date = next_month.replace(day=1) - timedelta(seconds=1)
-    else:
-        start_date = None
-        end_date = None
 
     for s in salesmen:
-        # --- Sales Total (amount)
+        # Sales total
         sale_query = db.query(func.sum(Sale.amount)).filter(Sale.salesman_id == s.id)
         if start_date:
             sale_query = sale_query.filter(Sale.timestamp >= start_date)
@@ -112,7 +120,7 @@ def get_salesman_summaries(
             sale_query = sale_query.filter(Sale.timestamp <= end_date)
         total_sales = sale_query.scalar() or 0
 
-        # --- Incentive
+        # Incentives total
         incentive_query = db.query(func.sum(Incentive.amount)).filter(Incentive.salesman_id == s.id)
         if start_date:
             incentive_query = incentive_query.filter(Incentive.timestamp >= start_date)
@@ -120,7 +128,7 @@ def get_salesman_summaries(
             incentive_query = incentive_query.filter(Incentive.timestamp <= end_date)
         total_incentive = incentive_query.scalar() or 0.0
 
-        # --- Claimed stays all-time
+        # Claimed is all-time
         total_claimed = db.query(func.sum(Claim.amount)).filter(
             Claim.salesman_id == s.id,
             Claim.status.in_(["approved", "paid"])
@@ -138,3 +146,43 @@ def get_salesman_summaries(
         ))
 
     return summaries
+
+@router.get("/summary/xlsx")
+def export_salesman_summary_xlsx(
+    period: str = Query("total", enum=["today", "month", "total"]),
+    from_date: Optional[date] = Query(None, alias="from"),
+    to_date: Optional[date] = Query(None, alias="to"),
+    db: Session = Depends(get_db)
+):
+    data = get_salesman_summaries(period=period, from_date=from_date, to_date=to_date, db=db)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Salesman Summary"
+
+    # Header
+    ws.append(["ID", "Name", "Mobile", "Outlet", "Total Sales", "Incentive", "Claimed", "Wallet"])
+
+    # Data rows
+    for s in data:
+        ws.append([
+            s.id,
+            s.name,
+            s.mobile,
+            s.outlet or "",
+            round(s.total_sales or 0.0, 2),
+            round(s.total_incentive or 0.0, 2),
+            round(s.total_claimed or 0.0, 2),
+            round(s.wallet_balance or 0.0, 2)
+        ])
+
+    stream = io.BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+
+    filename = "salesman_summary.xlsx"
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
