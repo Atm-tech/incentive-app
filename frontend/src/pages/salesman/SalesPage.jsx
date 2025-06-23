@@ -1,4 +1,3 @@
-// same imports
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
@@ -10,12 +9,15 @@ import api from '../../lib/api';
 import logo from "../../assets/logo.png";
 import beepSound from "../../assets/beep.mp3";
 import { ToastContainer, toast } from 'react-toastify';
+import { HelpCircle } from 'lucide-react';
 import 'react-toastify/dist/ReactToastify.css';
 
 export default function SalesPage() {
   const [items, setItems] = useState([]);
   const [customer, setCustomer] = useState({ name: '', phone: '' });
   const [manualBarcode, setManualBarcode] = useState('');
+  const [traits, setTraits] = useState([]);
+  const [showPopup, setShowPopup] = useState(true);
   const scannerRef = useRef(null);
   const beepRef = useRef(null);
   const navigate = useNavigate();
@@ -57,7 +59,7 @@ export default function SalesPage() {
 
         const capabilities = videoTrack.getCapabilities();
         if (capabilities.zoom) {
-          const zoom = Math.min(capabilities.zoom.max, 3);
+          const zoom = Math.min(capabilities.zoom.max, 2.5);
           await videoTrack.applyConstraints({ advanced: [{ zoom }] });
         }
 
@@ -113,6 +115,15 @@ export default function SalesPage() {
     };
     document.addEventListener("click", unlockAudio);
     document.addEventListener("touchstart", unlockAudio);
+  }, []);
+
+  useEffect(() => {
+    api.get("/api/admin/traits", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    }).then(res => {
+      const visibleTraits = res.data.filter(t => t.is_visible);
+      setTraits(visibleTraits);
+    }).catch(console.error);
   }, []);
 
   const handleManualEntry = async (code) => {
@@ -173,7 +184,7 @@ export default function SalesPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#fff", fontFamily: "Segoe UI, sans-serif" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#fff", fontFamily: "Segoe UI, sans-serif", position: "relative" }}>
       <ToastContainer position="top-center" />
       <style>
         {`
@@ -186,6 +197,40 @@ export default function SalesPage() {
         `}
       </style>
       <audio ref={beepRef} src={beepSound} preload="auto" />
+
+      {/* Popup for Trait Incentives */}
+      {showPopup && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
+          backgroundColor: "rgba(0, 0, 0, 0.5)", display: "flex",
+          justifyContent: "center", alignItems: "center", zIndex: 9999
+        }}>
+          <div style={{
+            backgroundColor: "#fff", borderRadius: "16px", padding: "24px",
+            width: "90%", maxWidth: "400px", boxShadow: "0 0 20px rgba(0,0,0,0.3)",
+            textAlign: "center"
+          }}>
+            <h2 style={{ marginBottom: "1rem", fontWeight: "bold", fontSize: "20px" }}>
+              Incentives
+            </h2>
+            {traits.map((trait, i) => (
+              <p key={i} style={{ fontSize: "16px", margin: "6px 0" }}>
+                <strong>{trait.trait}</strong>: {trait.percentage}%
+              </p>
+            ))}
+            <button
+              onClick={() => setShowPopup(false)}
+              style={{
+                marginTop: "20px", padding: "10px 20px", backgroundColor: "#e60000",
+                color: "#fff", border: "none", borderRadius: "8px", fontWeight: "bold",
+                cursor: "pointer", boxShadow: "0 4px 10px rgba(0,0,0,0.2)"
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{
@@ -202,7 +247,15 @@ export default function SalesPage() {
 
       {/* Scanner */}
       <Card className="p-4 mt-4 mx-4">
-        <h3 className="text-center font-semibold mb-2">Scan Barcode</h3>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '8px', gap: '8px' }}>
+          <h3 className="font-semibold">Scan Barcode</h3>
+          <HelpCircle
+            size={20}
+            color="#B71C1C"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setShowPopup(true)}
+          />
+        </div>
         <div id="reader" style={{
           width: "100%",
           border: "1px solid #ccc",
@@ -212,7 +265,7 @@ export default function SalesPage() {
         }} />
       </Card>
 
-      {/* Manual Barcode Input - moved BELOW scanner */}
+      {/* Manual Barcode Input */}
       <Card className="p-4 mt-4 mx-4">
         <h3 className="font-semibold text-center mb-2">Enter Barcode Manually</h3>
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
@@ -231,7 +284,7 @@ export default function SalesPage() {
         </div>
       </Card>
 
-      {/* Scanned Items Table */}
+      {/* Scanned Items */}
       {items.length > 0 && (
         <Card className="p-4 mt-4 mx-4 overflow-x-auto">
           <table style={{ width: "100%", fontSize: "14px", textAlign: "center", borderCollapse: "collapse" }}>

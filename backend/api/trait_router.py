@@ -61,7 +61,7 @@ def create_trait_config(
     db: Session = Depends(get_db),
     admin=Depends(get_current_user_role("admin"))
 ):
-    created = trait_config_crud.create_trait(db, payload.trait, payload.percentage, payload.is_visible)
+    created = trait_config_crud.create_trait(db, payload.trait, payload.percentage, True)
     return {
         "message": "Trait created",
         "trait": created.trait

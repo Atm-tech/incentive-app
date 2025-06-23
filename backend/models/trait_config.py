@@ -13,4 +13,4 @@ class TraitConfig(Base):
     id = Column(Integer, primary_key=True, index=True)
     trait = Column(String, unique=True, index=True, nullable=False)  # e.g., "new", "old", "specialxyz1"
     percentage = Column(Float, nullable=True)  # e.g., 0.05 for 5%
-    is_visible = Column(Boolean, default=False)  # Whether incentive is visible to salesman
+    is_visible = Column(Boolean, default=True)  # Whether incentive is visible to salesman
