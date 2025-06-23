@@ -19,7 +19,7 @@ def get_db():
 @router.get("/traits", response_model=list[dict])
 def get_all_traits(
     db: Session = Depends(get_db),
-    admin=Depends(get_current_user_role("admin"))
+    
 ):
     """
     Admin: Get all trait configurations.
