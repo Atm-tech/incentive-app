@@ -1,4 +1,3 @@
-// ⬅️ your existing imports
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
@@ -10,7 +9,7 @@ import api from '../../lib/api';
 import logo from "../../assets/logo.png";
 import beepSound from "../../assets/beep.mp3";
 import { ToastContainer, toast } from 'react-toastify';
-import { HelpCircle, ArrowLeft } from 'lucide-react';
+import { HelpCircle } from 'lucide-react';
 import 'react-toastify/dist/ReactToastify.css';
 
 export default function SalesPage() {
@@ -37,34 +36,14 @@ export default function SalesPage() {
   }, [navigate]);
 
   useEffect(() => {
-    let html5QrCode;
-    let videoTrack;
-
     const startScanner = async () => {
       try {
         const devices = await Html5Qrcode.getCameras();
         if (!devices.length) throw new Error("No camera found");
+
         const rearCam = devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
 
-        const constraints = {
-          video: {
-            deviceId: rearCam.id,
-            facingMode: { ideal: "environment" },
-            width: { ideal: 200 },
-            height: { ideal: 50 }
-          }
-        };
-
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        videoTrack = stream.getVideoTracks()[0];
-
-        const capabilities = videoTrack.getCapabilities();
-        if (capabilities.zoom) {
-          const zoom = Math.min(capabilities.zoom.max, 2.5);
-          await videoTrack.applyConstraints({ advanced: [{ zoom }] });
-        }
-
-        html5QrCode = new Html5Qrcode("reader", {
+        const html5QrCode = new Html5Qrcode("reader", {
           formatsToSupport: [
             Html5QrcodeSupportedFormats.CODE_128,
             Html5QrcodeSupportedFormats.EAN_13,
@@ -78,8 +57,7 @@ export default function SalesPage() {
           { deviceId: { exact: rearCam.id } },
           {
             fps: 10,
-            qrbox: { width: 300, height: 50 },
-            videoConstraints: { deviceId: rearCam.id }
+            qrbox: { width: 300, height: 50 }
           },
           async (decodedText) => {
             const now = Date.now();
@@ -96,15 +74,16 @@ export default function SalesPage() {
         scannerRef.current = html5QrCode;
       } catch (err) {
         console.error("Camera init failed:", err);
-        toast.error("Camera access failed. Try HTTPS or allow permissions.");
+        toast.error("Camera access failed. Use HTTPS and allow permission.");
       }
     };
 
     startScanner();
 
     return () => {
-      if (scannerRef.current) scannerRef.current.stop().then(() => scannerRef.current.clear());
-      if (videoTrack) videoTrack.stop();
+      if (scannerRef.current) {
+        scannerRef.current.stop().then(() => scannerRef.current.clear());
+      }
     };
   }, []);
 
@@ -199,7 +178,7 @@ export default function SalesPage() {
       </style>
       <audio ref={beepRef} src={beepSound} preload="auto" />
 
-      {/* Popup for Trait Incentives */}
+      {/* Trait Incentive Popup */}
       {showPopup && (
         <div style={{
           position: "fixed", top: 0, left: 0, width: "100%", height: "100%",
@@ -235,55 +214,36 @@ export default function SalesPage() {
 
       {/* Header */}
       <div style={{
-        width: "100vw",
-        background: "#B71C1C",
-        padding: "12px 0",
-        marginLeft: "-8px",
-        marginRight: "-8px",
-        textAlign: "center",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-        position: "relative"
+        width: "100vw", background: "#B71C1C", padding: "12px 0",
+        marginLeft: "-8px", marginRight: "-8px", textAlign: "center",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.3)", position: "relative"
       }}>
-        
         <img src={logo} alt="Logo" style={{ height: "40px" }} />
       </div>
-      {/* ⬅️ Back Button (like ProfilePage) */}
-       <div style={{ padding: "0 20px", marginTop: "20px" }}>
-          <button
-            onClick={() => navigate(-1)}
-              style={{
-              background: "#fff",
-              border: "1px solid #e60000",
-              color: "#e60000",
-              padding: "6px 16px",
-              borderRadius: "999px",
-              fontSize: "14px",
-              fontWeight: "bold",
-              cursor: "pointer"
-           }}
-           >
-             ← Back
-            </button>
-            </div>
 
+      {/* Back Button */}
+      <div style={{ padding: "0 20px", marginTop: "20px" }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            background: "#fff", border: "1px solid #e60000", color: "#e60000",
+            padding: "6px 16px", borderRadius: "999px", fontSize: "14px",
+            fontWeight: "bold", cursor: "pointer"
+          }}
+        >
+          ← Back
+        </button>
+      </div>
 
       {/* Scanner */}
       <Card className="p-4 mt-4 mx-4">
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '8px', gap: '8px' }}>
           <h3 className="font-semibold">Scan Barcode</h3>
-          <HelpCircle
-            size={20}
-            color="#B71C1C"
-            style={{ cursor: 'pointer' }}
-            onClick={() => setShowPopup(true)}
-          />
+          <HelpCircle size={20} color="#B71C1C" style={{ cursor: 'pointer' }} onClick={() => setShowPopup(true)} />
         </div>
         <div id="reader" style={{
-          width: "100%",
-          border: "1px solid #ccc",
-          borderRadius: "10px",
-          overflow: "hidden",
-          minHeight: "100px"
+          width: "100%", border: "1px solid #ccc", borderRadius: "10px",
+          overflow: "hidden", minHeight: "100px"
         }} />
       </Card>
 
@@ -306,7 +266,7 @@ export default function SalesPage() {
         </div>
       </Card>
 
-      {/* Scanned Items */}
+      {/* Scanned Items Table */}
       {items.length > 0 && (
         <Card className="p-4 mt-4 mx-4 overflow-x-auto">
           <table style={{ width: "100%", fontSize: "14px", textAlign: "center", borderCollapse: "collapse" }}>
@@ -346,19 +306,11 @@ export default function SalesPage() {
       {/* Customer Info */}
       <Card className="p-4 mt-4 mx-4 space-y-3">
         <h3 className="text-center font-bold underline mb-2">Customer Info</h3>
-        <Input
-          label="Name"
-          value={customer.name}
-          onChange={(e) => setCustomer({ ...customer, name: e.target.value })}
-        />
-        <Input
-          label="Number"
-          value={customer.phone}
-          onChange={(e) => setCustomer({ ...customer, phone: e.target.value })}
-        />
+        <Input label="Name" value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} />
+        <Input label="Number" value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} />
       </Card>
 
-      {/* Submit Button */}
+      {/* Submit */}
       <div style={{ textAlign: "center", marginTop: "30px" }}>
         <Button
           onClick={submitSale}
