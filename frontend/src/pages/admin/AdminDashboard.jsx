@@ -10,6 +10,7 @@ import PendingSalesmen from "./PendingSalesmen";
 import UserManager from "./UserManager";
 import BaseUpload from "./BaseUpload";
 import ProductManager from "./ProductManager";
+import AdminSalesPage from "./AdminSalesPage";
 import SalesUpload from "./SalesUpload";
 import ClaimDashboard from "./ClaimDashboard";
 import IncentiveControl from "./IncentiveControl";
@@ -43,6 +44,8 @@ const AdminDashboard = () => {
         return <ClaimDashboard key={refreshKey} />;
       case "incentives":
         return <IncentiveControl key={refreshKey} />;
+      case "adminsales":
+        return <AdminSalesPage key={refreshKey} />;  
       case "streaks":
         return <Streaks key={refreshKey} />;
       case "leaderboard":

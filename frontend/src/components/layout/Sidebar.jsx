@@ -9,6 +9,7 @@ export default function Sidebar({ activeSection, setActiveSection }) {
     { key: "products", label: "Products" },
     { key: "traits", label: "Traits Config" },
     { key: "setincentives", label: "Set Incentives" },
+    { key: "adminsales", label: "Sales Report" },
     { key: "reward", label: "Reward Winners" },
     { key: "users", label: "Users" },
     { key: "claims", label: "Claims" },

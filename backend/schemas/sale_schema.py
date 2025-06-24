@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
+from datetime import datetime
 
 class SaleItem(BaseModel):
     barcode: str
@@ -21,3 +22,4 @@ class SaleOut(BaseModel):
 
     class Config:
         from_attributes = True
+

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-
+from datetime import datetime
 class SalesmanCreate(BaseModel):
     name: str
     mobile: str
@@ -42,3 +42,17 @@ class SalesmanSummaryOut(BaseModel):
 
     class Config:
         orm_mode = True
+        
+        
+class AdminSaleOut(BaseModel):
+    timestamp: datetime
+    customer_name: str
+    customer_number: str
+    barcode: str
+    qty: int
+    amount: float
+    salesman_name: str
+    outlet: str
+
+    class Config:
+        from_attributes = True        

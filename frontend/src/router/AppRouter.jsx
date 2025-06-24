@@ -5,6 +5,8 @@ import AdminDashboard from "../pages/admin/AdminDashboard";
 import RequireAuth from "../auth/requireAuth";
 import HistoryPage from '../pages/salesman/HistoryPage';
 import RewardPage from "../pages/admin/RewardPage";
+import AdminSalesPage from '../pages/admin/AdminSalesPage';
+
 // Salesman screens
 import SalesmanLanding from "../pages/salesman/SalesmanLanding";
 import ProfilePage from "../pages/salesman/ProfilePage";
@@ -38,6 +40,7 @@ export default function AppRouter() {
             </RequireRole>
           }
         />
+        <Route path="/admin/sales" element={<AdminSalesPage />} />
 
         {/* Salesman Pages */}
         <Route
