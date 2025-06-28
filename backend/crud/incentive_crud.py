@@ -5,6 +5,8 @@ from models.product import Product
 from models.incentive import Incentive
 from models.trait_config import TraitConfig
 from models.salesman import Salesman
+from datetime import datetime, timedelta
+from sqlalchemy import func
 
 def generate_incentives(db: Session) -> dict:
     """
@@ -84,11 +86,46 @@ def get_incentives_for_salesman(db: Session, salesman_id: int) -> list[Incentive
     return db.query(Incentive).filter_by(salesman_id=salesman_id, is_visible=True).all()
 
 
-def get_all_incentives(db: Session) -> list[Incentive]:
-    """
-    Admin: Fetch all incentives in the system.
-    """
-    return db.query(Incentive).order_by(Incentive.timestamp.desc()).all()
+def get_all_incentives(db: Session, period: str = "total"):
+    query = db.query(Incentive).join(Salesman).add_columns(
+        Incentive.id,
+        Incentive.barcode,
+        Incentive.trait,
+        Incentive.amount,
+        Incentive.timestamp,
+        Incentive.is_visible,
+        Salesman.name.label("salesman_name")
+    )
+
+    today = datetime.now().date()
+
+    if period == "today":
+        query = query.filter(func.date(Incentive.timestamp) == today)
+    elif period == "month":
+        query = query.filter(
+            Incentive.timestamp >= today.replace(day=1)
+        )
+    elif period == "last_month":
+        first_day_this_month = today.replace(day=1)
+        last_month_end = first_day_this_month - timedelta(days=1)
+        last_month_start = last_month_end.replace(day=1)
+        query = query.filter(
+            Incentive.timestamp >= last_month_start,
+            Incentive.timestamp <= last_month_end
+        )
+
+    return [
+        {
+            "id": row.id,
+            "barcode": row.barcode,
+            "trait": row.trait,
+            "amount": row.amount,
+            "timestamp": row.timestamp,
+            "is_visible": row.is_visible,
+            "salesman_name": row.salesman_name
+        }
+        for row in query.order_by(Incentive.timestamp.desc()).all()
+    ]
 
 
 

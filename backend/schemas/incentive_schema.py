@@ -1,15 +1,18 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+
 class IncentiveOut(BaseModel):
     id: int
     barcode: str
-    amount: float
     trait: str
+    amount: float
     timestamp: datetime
+    is_visible: bool
+    salesman_name: str
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class IncentiveSchema(BaseModel):
     day_amount: float
