@@ -140,14 +140,14 @@ export default function Leaderboard() {
   return (
     <div
       style={{
-        padding: "30px",
+        padding: "15px",
         backgroundColor: "#fffff",
         minHeight: "100vh",
         fontFamily: "'Segoe UI', sans-serif",
       }}
     >
       <h1 style={{ textAlign: "center", fontSize: "26px", fontWeight: "bold", marginBottom: "40px", textDecoration: "underline" }}>
-        Leaderboard Overview
+        Leaderboard
       </h1>
 
       {renderTable("Star of the Day", leaderboard.day.label, leaderboard.day.data.slice(0, 1), incentive.day)}
