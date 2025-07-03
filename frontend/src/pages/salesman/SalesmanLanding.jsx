@@ -61,9 +61,9 @@ export default function SalesmanLanding() {
       }}>
         <div style={{
           background: "#fff",
-          borderRadius: "16px",
+          borderRadius: "10px",
           padding: "24px",
-          boxShadow: "0 8px 20px rgba(0,0,0,0.15)"
+          boxShadow: "inset rgba(255, 0, 0, 0.4) 0px -5px, 0 4px 12px rgba(0,0,0,0.05)"
         }}>
           <div style={{ fontSize: "15px", color: "#333", marginBottom: "16px" }}>
             <p>Month Sales: <span style={{ fontWeight: "bold" }}>₹{(stats.month_sales_amount ?? 0).toFixed(2)}</span></p>
