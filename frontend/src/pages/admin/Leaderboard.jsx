@@ -121,7 +121,7 @@ export default function Leaderboard() {
           <thead>
             <tr style={{ background: "#fffff", borderBottom: "2px solid #ddd" }}>
               <th style={{ padding: "10px" }}>Name</th>
-              <th style={{ padding: "10px" }}>Sales Amount</th>
+              <th style={{ padding: "10px" }}>Sales Amt</th>
             </tr>
           </thead>
           <tbody>
