@@ -8,8 +8,11 @@ import Leaderboard from '../admin/Leaderboard';
 export default function SalesmanLanding() {
   const [stats, setStats] = useState(null);
   const [showStats, setShowStats] = useState(true);
+  const [statsHeight, setStatsHeight] = useState(0);
+  const statsRef = useRef(null);
   const navigate = useNavigate();
   const lastScrollY = useRef(0);
+  const scrollTimeout = useRef(null);
 
   useEffect(() => {
     api.get('/api/salesman/stats', {
@@ -22,10 +25,23 @@ export default function SalesmanLanding() {
   }, []);
 
   useEffect(() => {
+    if (statsRef.current) {
+      setStatsHeight(statsRef.current.scrollHeight);
+    }
+  }, [stats]);
+
+  useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
-      setShowStats(currentY < lastScrollY.current || currentY < 80); // show when scrolling up or near top
-      lastScrollY.current = currentY;
+      const diff = currentY - lastScrollY.current;
+
+      clearTimeout(scrollTimeout.current);
+      scrollTimeout.current = setTimeout(() => {
+        if (Math.abs(diff) > 5) {
+          setShowStats(diff < 0 || currentY < 80);
+          lastScrollY.current = currentY;
+        }
+      }, 10);
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -37,8 +53,8 @@ export default function SalesmanLanding() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", fontFamily: "'Segoe UI', sans-serif" }}>
-      {/* 🔴 Sticky Header (never collapses) */}
+    <div style={{ minHeight: "100vh", fontFamily: "'Segoe UI', sans-serif", background: "#f7f7f7" }}>
+      {/* 🔴 Sticky Header */}
       <div style={{
         position: "sticky",
         top: 0,
@@ -51,20 +67,27 @@ export default function SalesmanLanding() {
         <img src={logo} alt="Logo" style={{ height: "40px" }} />
       </div>
 
-      {/* 🟢 Collapsible Stats Container */}
-      <div style={{
-        transition: "max-height 0.4s ease, opacity 0.4s ease, margin 0.4s ease",
-        overflow: "hidden",
-        maxHeight: showStats ? "500px" : "0px",
-        opacity: showStats ? 1 : 0,
-        margin: showStats ? "20px" : "0px"
-      }}>
-        <div style={{
-          background: "#fff",
-          borderRadius: "10px",
-          padding: "24px",
-          boxShadow: "inset rgba(255, 0, 0, 0.4) 0px -5px, 0 4px 12px rgba(0,0,0,0.05)"
-        }}>
+      {/* 🟢 Animated Stats Container */}
+      <div
+        style={{
+          height: showStats ? `${statsHeight}px` : "0px",
+          transition: "height 0.5s ease, opacity 0.5s ease",
+          opacity: showStats ? 1 : 0
+          // ✅ DO NOT use overflow: hidden — it cuts off rounded border!
+        }}
+      >
+        <div
+          ref={statsRef}
+          style={{
+            background: "#fff",
+            borderRadius: "18px",
+            padding: "24px",
+            paddingBottom: "35px",     // ✅ Inner spacing to show red curve
+            margin: "20px",
+            marginBottom: "100px",     // ✅ Outer spacing to avoid sticky overlap
+            boxShadow: "rgb(255, 0, 0) 0px 0 0px 2px inset, rgb(255 0 0 / 73%) 0px 0 4px 0px"
+          }}
+        >
           <div style={{ fontSize: "15px", color: "#333", marginBottom: "16px" }}>
             <p>Month Sales: <span style={{ fontWeight: "bold" }}>₹{(stats.month_sales_amount ?? 0).toFixed(2)}</span></p>
             <p>Today's Sales: <span style={{ fontWeight: "bold" }}>₹{(stats.today_sales_amount ?? 0).toFixed(2)}</span></p>
@@ -94,10 +117,10 @@ export default function SalesmanLanding() {
       {/* 🟡 Sticky New Sale Button */}
       <div style={{
         position: "sticky",
-        top: "64px", // just below the header
+        top: "64px", // below header
         zIndex: 1001,
         background: "#fff",
-        padding: "12px 20px",
+        padding: "12px 54px",
         borderBottom: "1px solid #eee",
         boxShadow: "0 4px 10px rgba(0,0,0,0.05)"
       }}>
@@ -124,13 +147,13 @@ export default function SalesmanLanding() {
         </button>
       </div>
 
-      {/* 📊 Scrollable Leaderboard */}
-      <div style={{ padding: "20px", background: "#f5f5f5" }}>
+      {/* 📊 Leaderboard Section */}
+      <div style={{ padding: "20px", background: "#f0f0f0" }}>
         <div style={{
           backgroundColor: "#fff",
-          padding: "20px",
-          borderRadius: "16px",
-          boxShadow: "0 8px 20px rgba(0,0,0,0.15)"
+          padding: "24px",
+          borderRadius: "20px",
+          boxShadow: "0 6px 20px rgba(0, 0, 0, 0.1)"
         }}>
           <Leaderboard data={stats.leaderboard || []} />
         </div>

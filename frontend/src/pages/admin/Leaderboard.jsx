@@ -60,7 +60,7 @@ export default function Leaderboard() {
         borderRadius: "16px",
         padding: "24px",
         marginBottom: "32px",
-        boxShadow: "0 8px 20px rgba(0,0,0,0.15)",
+        boxShadow: "rgb(225 183 0 / 43%) 0px 0px 5px 3px",
         transition: "transform 0.2s ease-in-out",
       }}
     >
