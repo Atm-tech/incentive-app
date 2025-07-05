@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import api from "../../lib/api";
 import { ToastContainer, toast } from "react-toastify";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
 import "react-toastify/dist/ReactToastify.css";
 
 export default function AdminSalesPage() {
@@ -88,21 +86,34 @@ export default function AdminSalesPage() {
   const totalPages = Math.ceil(filteredSales.length / rowsPerPage);
 
   const downloadXLSX = () => {
-    const rows = filteredSales.map((s) => ({
-      Date: new Date(s.timestamp).toLocaleDateString(),
-      Customer: s.customer_name,
-      Phone: s.customer_number,
-      Barcode: s.barcode,
-      Qty: s.qty,
-      Amount: s.amount,
-      Salesman: s.salesman_name,
-      Outlet: s.outlet,
-    }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Sales Report");
-    const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(new Blob([buf], { type: "application/octet-stream" }), "sales_report.xlsx");
+    const params = new URLSearchParams();
+    if (fromDate) params.append("from_date", fromDate);
+    if (toDate) params.append("to_date", toDate);
+    if (outletFilter) params.append("outlet", outletFilter);
+    if (search) params.append("search", search);
+
+    const url = `/api/sales/admin/sales/xlsx?${params.toString()}`;
+
+    api
+      .get(url, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        responseType: "blob",
+      })
+      .then((res) => {
+        const blob = new Blob([res.data], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "sales_report.xlsx";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      })
+      .catch((err) => {
+        toast.error("Failed to download report");
+        console.error(err);
+      });
   };
 
   return (
