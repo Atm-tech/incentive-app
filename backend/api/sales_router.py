@@ -43,7 +43,7 @@ def my_sales(
 
 @router.get("/admin/sales", response_model=List[AdminSaleOut])
 def get_admin_sales(db: Session = Depends(get_db)):
-    sales = db.query(Sale).all()
+    sales = db.query(Sale).options(joinedload(Sale.salesman)).limit(500).all()
     result = []
 
     for s in sales:
