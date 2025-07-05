@@ -1,0 +1,25 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+
+# Frontend
+node_modules/
+dist/
+.build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+.exe
+.zip
+.pack
+dist/
+
+.db
+incentive.db

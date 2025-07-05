@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --header-height: 80px;
+  --red: #e53935;
+  --red-deep: #b71c1c;
+  --light-red: #ffebee;
+  --white: #ffffff;
+  --gray: #f5f5f5;
+  --text-dark: #212121;
+  --text-muted: #757575;
+}
+
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45px;
+  background-color: var(--red-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+
+body {
+  margin: 0;
+  padding-top: 50px; /* Fix: you had 'px' with no value */
+  padding-left: 6px; /* ✅ Add left padding */
+  padding-right: 6px;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: var(--white);
+  color: var(--text-dark);
+}
+
+
+
+/* Common Components */
+button {
+  background-color: var(--red);
+  color: var(--white);
+  border: none;
+  border-radius: 9999px;
+  padding: 10px 20px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #d32f2f;
+}
+
+.card {
+  background-color: var(--white);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+}
+
+.summary-section {
+  background-color: var(--gray);
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem auto;
+  max-width: 600px;
+}
+
+.leaderboard-section {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.leaderboard-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+th, td {
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+}
+th {
+  font-weight: bold;
+  color: var(--text-dark);
+}
+td {
+  color: var(--text-muted);
+}
+
+/* Responsive: horizontal layout on desktop */
+@media (min-width: 768px) {
+  .summary-section {
+    flex-direction: row;
+    gap: 2rem;
+  }
+
+  .summary-section > div {
+    flex: 1;
+  }
+}
