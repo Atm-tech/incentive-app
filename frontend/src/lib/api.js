@@ -3,7 +3,7 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "https://incentive-app-gf1z.onrender.com",
-  timeout: 10000,
+  timeout: 7000000,
 });
 
 // Automatically attach token to all requests
