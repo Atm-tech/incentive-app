@@ -66,7 +66,7 @@ def get_admin_sales(
             (Sale.barcode.ilike(search_term))
         )
 
-    sales = query.all()
+    sales = query.order_by(Sale.timestamp.desc()).limit(4000).all()
     result = []
 
     for s in sales:
