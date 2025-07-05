@@ -11,6 +11,7 @@ from typing import List
 from models.salesman import Salesman
 from schemas.salesman_schema import AdminSaleOut
 from fastapi.responses import StreamingResponse
+from sqlalchemy import desc
 import io
 import pandas as pd
 
@@ -43,7 +44,7 @@ def my_sales(
 
 @router.get("/admin/sales", response_model=List[AdminSaleOut])
 def get_admin_sales(db: Session = Depends(get_db)):
-    sales = db.query(Sale).options(joinedload(Sale.salesman)).limit(500).all()
+    sales = db.query(Sale).options(joinedload(Sale.salesman)).order_by(desc(Sale.timestamp)).limit(500).all()
     result = []
 
     for s in sales:
