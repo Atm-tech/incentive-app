@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import api from "../../lib/api";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -10,92 +10,42 @@ export default function AdminSalesPage() {
   const [outletFilter, setOutletFilter] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [activeTab, setActiveTab] = useState("total");
   const [currentPage, setCurrentPage] = useState(1);
-  const rowsPerPage = 10;
   const [outlets, setOutlets] = useState([]);
+  const rowsPerPage = 10;
 
-  useEffect(() => {
+  const fetchFilteredSales = () => {
+    const params = new URLSearchParams();
+    if (fromDate) params.append("from_date", fromDate);
+    if (toDate) params.append("to_date", toDate);
+    if (search) params.append("search", search);
+    if (outletFilter) params.append("outlet", outletFilter);
+
     api
-      .get("/api/sales/admin/sales", {
+      .get(`/api/sales/admin/sales?${params.toString()}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })
       .then((res) => {
         setRawSales(res.data || []);
+        setFilteredSales(res.data || []);
         setOutlets([...new Set(res.data.map((s) => s.outlet))]);
+        setCurrentPage(1);
       })
       .catch((err) => {
-        toast.error("Failed to load sales data");
+        toast.error("Failed to load sales");
         console.error(err);
       });
-  }, []);
-
-  useEffect(() => {
-    let result = [...rawSales];
-
-    if (activeTab === "today") {
-      const today = new Date().toISOString().split("T")[0];
-      result = result.filter((s) => s.timestamp.startsWith(today));
-    } else if (activeTab === "month") {
-      const now = new Date();
-      result = result.filter((s) => {
-        const d = new Date(s.timestamp);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      });
-    } else if (activeTab === "last_month") {
-      const now = new Date();
-      const prevMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-      const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-      result = result.filter((s) => {
-        const d = new Date(s.timestamp);
-        return d.getMonth() === prevMonth && d.getFullYear() === prevYear;
-      });
-    }
-
-    if (fromDate && toDate) {
-      const from = new Date(fromDate);
-      const to = new Date(toDate);
-      result = result.filter((s) => {
-        const date = new Date(s.timestamp);
-        return date >= from && date <= to;
-      });
-    }
-
-    if (search) {
-      const term = search.toLowerCase();
-      result = result.filter(
-        (s) =>
-          s.customer_name.toLowerCase().includes(term) ||
-          s.customer_number.includes(term) ||
-          s.barcode.includes(term)
-      );
-    }
-
-    if (outletFilter) {
-      result = result.filter((s) => s.outlet === outletFilter);
-    }
-
-    setFilteredSales(result);
-    setCurrentPage(1);
-  }, [rawSales, search, outletFilter, fromDate, toDate, activeTab]);
-
-  const paginatedSales = filteredSales.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
-  const totalPages = Math.ceil(filteredSales.length / rowsPerPage);
+  };
 
   const downloadXLSX = () => {
     const params = new URLSearchParams();
     if (fromDate) params.append("from_date", fromDate);
     if (toDate) params.append("to_date", toDate);
-    if (outletFilter) params.append("outlet", outletFilter);
     if (search) params.append("search", search);
-
-    const url = `/api/sales/admin/sales/xlsx?${params.toString()}`;
+    if (outletFilter) params.append("outlet", outletFilter);
 
     api
-      .get(url, {
+      .get(`/api/sales/admin/sales/xlsx?${params.toString()}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         responseType: "blob",
       })
@@ -116,6 +66,12 @@ export default function AdminSalesPage() {
       });
   };
 
+  const paginatedSales = filteredSales.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
+  const totalPages = Math.ceil(filteredSales.length / rowsPerPage);
+
   return (
     <div style={{ padding: "20px", fontFamily: "Segoe UI, sans-serif" }}>
       <ToastContainer />
@@ -124,44 +80,50 @@ export default function AdminSalesPage() {
       </h2>
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "16px" }}>
-        {["today", "month", "last_month", "total"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => {
-              setFromDate("");
-              setToDate("");
-              setSearch("");
-              setActiveTab(tab);
-            }}
-            style={{
-              padding: "6px 16px",
-              borderRadius: "999px",
-              border: `1px solid ${activeTab === tab ? "#dc2626" : "#d1d5db"}`,
-              backgroundColor: activeTab === tab ? "#dc2626" : "transparent",
-              color: activeTab === tab ? "white" : "#374151",
-              fontSize: "14px",
-              cursor: "pointer",
-            }}
-          >
-            {tab === "today"
-              ? "Today"
-              : tab === "month"
-              ? "This Month"
-              : tab === "last_month"
-              ? "Last Month"
-              : "Total"}
-          </button>
-        ))}
-
-        <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ padding: "6px 8px", borderRadius: "6px", border: "1px solid #ccc" }} />
-        <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={{ padding: "6px 8px", borderRadius: "6px", border: "1px solid #ccc" }} />
-        <input type="text" placeholder="Search name, phone, barcode" value={search} onChange={(e) => setSearch(e.target.value)} style={{ padding: "6px 8px", borderRadius: "6px", border: "1px solid #ccc", minWidth: "200px" }} />
-        <select value={outletFilter} onChange={(e) => setOutletFilter(e.target.value)} style={{ padding: "6px 8px", borderRadius: "6px", border: "1px solid #ccc" }}>
+        <input
+          type="date"
+          value={fromDate}
+          onChange={(e) => setFromDate(e.target.value)}
+          style={{ padding: "6px 8px", borderRadius: "6px", border: "1px solid #ccc" }}
+        />
+        <input
+          type="date"
+          value={toDate}
+          onChange={(e) => setToDate(e.target.value)}
+          style={{ padding: "6px 8px", borderRadius: "6px", border: "1px solid #ccc" }}
+        />
+        <input
+          type="text"
+          placeholder="Search name, phone, barcode"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ padding: "6px 8px", borderRadius: "6px", border: "1px solid #ccc", minWidth: "200px" }}
+        />
+        <select
+          value={outletFilter}
+          onChange={(e) => setOutletFilter(e.target.value)}
+          style={{ padding: "6px 8px", borderRadius: "6px", border: "1px solid #ccc" }}
+        >
           <option value="">All Outlets</option>
           {outlets.map((o, i) => (
             <option key={i} value={o}>{o}</option>
           ))}
         </select>
+
+        <button
+          onClick={fetchFilteredSales}
+          style={{
+            padding: "6px 12px",
+            backgroundColor: "#2563eb",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            fontWeight: "bold",
+            cursor: "pointer"
+          }}
+        >
+          🔍 Search
+        </button>
 
         <button
           onClick={downloadXLSX}
@@ -176,7 +138,7 @@ export default function AdminSalesPage() {
             cursor: "pointer"
           }}
         >
-          Download XLSX
+          📥 Download XLSX
         </button>
       </div>
 

@@ -5,14 +5,15 @@ from crud.sale_crud import submit_sale, get_sales_by_salesman
 from db.database import SessionLocal
 from utils.security import get_current_user_role
 from models.sale import Sale
-from typing import List
 from models.salesman import Salesman
 from schemas.salesman_schema import AdminSaleOut
 from fastapi.responses import StreamingResponse
-import io
+from typing import List
 import pandas as pd
+import io
 
 router = APIRouter()
+
 
 def get_db():
     db = SessionLocal()
@@ -52,11 +53,14 @@ def get_admin_sales(
 ):
     """
     Admin: View all sales with optional filters.
+    If no date range is given, limit to latest 4000 records.
     """
     query = db.query(Sale)
 
     if from_date and to_date:
         query = query.filter(Sale.timestamp.between(from_date, to_date))
+    else:
+        query = query.order_by(Sale.timestamp.desc()).limit(4000)
 
     if search:
         search_term = f"%{search}%"
@@ -66,7 +70,7 @@ def get_admin_sales(
             (Sale.barcode.ilike(search_term))
         )
 
-    sales = query.order_by(Sale.timestamp.desc()).limit(4000).all()
+    sales = query.all()
     result = []
 
     for s in sales:
@@ -97,11 +101,14 @@ def export_admin_sales_xlsx(
 ):
     """
     Admin: Export filtered sales to Excel (.xlsx)
+    If no date range is provided, limit to latest 4000.
     """
     query = db.query(Sale)
 
     if from_date and to_date:
         query = query.filter(Sale.timestamp.between(from_date, to_date))
+    else:
+        query = query.order_by(Sale.timestamp.desc()).limit(4000)
 
     if search:
         search_term = f"%{search}%"
@@ -112,8 +119,8 @@ def export_admin_sales_xlsx(
         )
 
     sales = query.all()
-
     rows = []
+
     for s in sales:
         salesman = db.query(Salesman).filter_by(id=s.salesman_id).first()
         if outlet and (not salesman or salesman.outlet != outlet):
